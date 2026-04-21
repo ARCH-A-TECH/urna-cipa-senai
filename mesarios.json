@@ -1,0 +1,11 @@
+{
+  "admin": {
+    "nome": "Administrador",
+    "senha_hash": "ca9b5a98447505f2759ef75fb3f8bcd67ef5cdd7a827515f6b1662dd3a63776c",
+    "admin": true,
+    "senha_temporaria": false,
+    "criado_em": "20/04/2026 21:12:19",
+    "senha_alterada_em": "20/04/2026 21:12:53",
+    "senha_alterada_por": "Administrador"
+  }
+}

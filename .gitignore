@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+eleicoes/
+cpfs_globais.json
+.env
+*.zip

@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Urna Eletrônica – CIPA SENAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:'IBM Plex Sans',sans-serif;
+  background:#d0d0d0;
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+}
+
+#urna{
+  width:100%;max-width:520px;
+  background:#fff;
+  border:1px solid #bbb;
+  border-radius:5px;
+  box-shadow:0 6px 40px #0003;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+/* TOPO AZUL */
+#topo{
+  background:#003087;
+  border-bottom:4px solid #FFD700;
+  padding:14px 18px;
+  display:flex;align-items:center;gap:12px;
+}
+#topo img.logo-senai{height:44px;object-fit:contain;border-radius:3px;}
+#topo-mid{flex:1;text-align:center;}
+#topo-mid h1{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.75rem;font-weight:700;
+  letter-spacing:3px;text-transform:uppercase;color:#fff;
+}
+#topo-mid p{font-size:.58rem;letter-spacing:2px;color:#aabbd4;text-transform:uppercase;margin-top:3px;}
+#topo img.logo-cipa{
+  height:44px;width:44px;object-fit:contain;
+  border-radius:50%;background:#000;
+}
+#eleicao-badge{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.55rem;color:#aabbd4;letter-spacing:1px;
+  text-align:right;max-width:90px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+#conteudo{padding:18px 20px 14px;background:#fff;flex:1;}
+
+.tela{display:none;}
+.tela.ativa{display:block;}
+
+.ttela{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.6rem;letter-spacing:3px;color:#999;
+  text-transform:uppercase;
+  border-bottom:1px solid #e8e8e8;
+  padding-bottom:9px;margin-bottom:13px;
+}
+
+.msg{
+  background:#f7f7f7;border:1px solid #ddd;border-radius:4px;
+  padding:11px 13px;font-size:.86rem;line-height:1.55;
+  margin-bottom:12px;color:#222;
+}
+.msg.err{border-color:#f5c0c0;color:#8b1010;background:#fff5f5;}
+.msg.ok {border-color:#9ec9aa;background:#f2faf5;color:#174d27;}
+
+.lbc{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.58rem;letter-spacing:2px;color:#999;
+  text-transform:uppercase;margin-bottom:5px;
+}
+.inp{
+  width:100%;background:#fff;border:1px solid #bbb;border-radius:4px;
+  color:#111;font-family:'IBM Plex Mono',monospace;
+  font-size:1.3rem;padding:10px 13px;letter-spacing:4px;
+  outline:none;margin-bottom:12px;transition:border-color .15s;
+}
+.inp:focus{border-color:#333;}
+.inp.sm{font-size:.9rem;letter-spacing:1px;}
+
+.file-input-wrap{margin-bottom:12px;}
+.file-input-wrap input[type="file"]{
+  font-family:'IBM Plex Sans',sans-serif;font-size:.82rem;
+  width:100%;
+}
+.file-label{
+  display:block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.55rem;letter-spacing:1px;color:#777;
+  margin-top:3px;
+}
+
+/* ════════════════════════════════════════════════════ */
+/* ─── TELA VOTAÇÃO TSE STYLE ──────────────────────── */
+/* ════════════════════════════════════════════════════ */
+
+#tela-votacao-tse{padding:0 !important;}
+.tse-wrap{
+  background:#f5f0e8;
+  padding:24px 20px 20px;
+  border-bottom:1px solid #e4dece;
+  min-height:360px;
+  display:flex;flex-direction:column;
+  position:relative;
+}
+.tse-header{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.58rem;letter-spacing:3px;color:#777;
+  text-transform:uppercase;text-align:right;
+  margin-bottom:18px;
+}
+.tse-seu-voto{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.65rem;letter-spacing:3px;color:#555;
+  text-transform:uppercase;margin-bottom:8px;
+}
+
+/* 4 large digit boxes */
+.tse-digitos{
+  display:flex;gap:10px;margin-bottom:22px;
+}
+.tse-dig{
+  width:52px;height:68px;
+  background:#fff;
+  border:2px solid #333;
+  border-radius:3px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:2.4rem;font-weight:700;color:#111;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.08);
+}
+.tse-dig.cursor::after{
+  content:'';position:absolute;bottom:10px;left:50%;
+  transform:translateX(-50%);width:22px;height:3px;background:#333;
+  animation:piscar .8s step-start infinite;
+}
+@keyframes piscar{0%,100%{opacity:1}50%{opacity:0}}
+
+/* Candidate info area (hidden until number typed) */
+.tse-cand-area{
+  flex:1;
+  min-height:120px;
+  display:flex;flex-direction:column;
+}
+.tse-cand-nome-lbl{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.6rem;letter-spacing:3px;color:#555;
+  text-transform:uppercase;margin-bottom:6px;
+}
+.tse-cand-nome{
+  font-size:1.1rem;font-weight:700;color:#111;
+  margin-bottom:12px;
+  min-height:1.5rem;
+}
+.tse-cand-foto{
+  width:100px;height:128px;
+  object-fit:cover;
+  border:1px solid #999;
+  background:#eee;
+  margin-top:8px;
+}
+.tse-cand-foto-placeholder{
+  width:100px;height:128px;
+  background:#e4dece;
+  border:1px dashed #b8b0a0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.55rem;letter-spacing:2px;color:#999;
+  text-transform:uppercase;text-align:center;
+  margin-top:8px;
+}
+
+.tse-instruct{
+  font-size:.8rem;color:#666;line-height:1.4;
+  padding:10px 0;
+}
+.tse-instruct strong{color:#111;}
+
+/* Discrete candidate reference strip */
+.tse-ref{
+  background:#ece6d5;
+  padding:8px 14px 10px;
+  border-top:1px solid #d8d0b8;
+}
+.tse-ref-title{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.52rem;letter-spacing:2px;color:#888;
+  text-transform:uppercase;margin-bottom:5px;
+  text-align:center;
+}
+.tse-ref-list{
+  display:flex;flex-wrap:wrap;gap:5px 10px;
+  justify-content:center;
+}
+.tse-ref-item{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.66rem;color:#555;
+  background:transparent;
+}
+.tse-ref-item b{
+  color:#111;font-weight:700;
+  margin-right:4px;
+}
+
+/* Bottom keypad area (green) */
+.tse-botoes{
+  background:#1d1d1d;
+  padding:16px 18px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr) 110px;
+  gap:8px;
+}
+.tcl{
+  background:#2a2a2a;
+  border:none;
+  color:#fff;
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:1.6rem;font-weight:700;
+  padding:14px 0;
+  border-radius:5px;
+  cursor:pointer;
+  transition:background .1s,transform .08s;
+  user-select:none;
+  position:relative;
+}
+.tcl:hover{background:#3a3a3a;}
+.tcl:active{background:#000;transform:scale(.95);}
+.tcl .braille{
+  display:block;font-size:.4rem;color:#888;
+  letter-spacing:2px;margin-top:2px;
+  font-family:monospace;
+}
+
+.tcl-action{
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;letter-spacing:1px;font-weight:700;
+  text-transform:uppercase;
+}
+.tcl-branco{background:#fff;color:#111;}
+.tcl-branco:hover{background:#e8e8e8;}
+.tcl-corrige{background:#e88d30;color:#fff;}
+.tcl-corrige:hover{background:#c7761f;}
+.tcl-confirma{background:#1e9a3e;color:#fff;}
+.tcl-confirma:hover{background:#17812f;}
+
+/* Bottom voltar */
+.tse-voltar{
+  background:#f5f0e8;
+  padding:8px 18px 14px;
+  display:flex;justify-content:center;
+}
+.btn-voltar-tse{
+  background:transparent;
+  border:1px solid #999;
+  color:#666;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.6rem;letter-spacing:2px;
+  padding:6px 18px;
+  border-radius:3px;cursor:pointer;
+  text-transform:uppercase;
+}
+.btn-voltar-tse:hover{background:#eae3d1;color:#111;}
+
+/* ─── BOTÕES GERAIS ─── */
+.bts{display:flex;gap:8px;margin-top:10px;}
+.btn{
+  flex:1;border-radius:4px;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.7rem;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;padding:13px 8px;
+  transition:filter .12s,transform .1s;border:none;
+}
+.btn:active{transform:scale(.97);}
+.btn-n {background:#e8e8e8;color:#555;border:1px solid #ccc;}
+.btn-n:hover{background:#ddd;}
+.btn-g {background:#1a7a3a;color:#fff;}
+.btn-g:hover{filter:brightness(1.1);}
+.btn-o {background:#c45000;color:#fff;}
+.btn-o:hover{filter:brightness(1.1);}
+.btn-r {background:#fff0f0;color:#cc2222;border:1px solid #f5c0c0;}
+.btn-r:hover{background:#ffe0e0;}
+
+#lista-wrap{max-height:380px;overflow-y:auto;margin-bottom:10px;}
+.card{
+  background:#fafafa;border:1px solid #ddd;border-radius:4px;
+  padding:11px 13px;margin-bottom:7px;
+  cursor:pointer;transition:border-color .15s,background .15s;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card:hover{border-color:#888;background:#f0f0f0;}
+.card .ct{font-weight:600;font-size:.9rem;color:#111;}
+.card .cm{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:#999;margin-top:3px;}
+.badge{
+  font-family:'IBM Plex Mono',monospace;font-size:.52rem;
+  letter-spacing:1px;padding:3px 8px;border-radius:3px;
+  border:1px solid #ccc;color:#999;white-space:nowrap;flex-shrink:0;
+}
+.badge-on{border-color:#1a7a3a;color:#1a7a3a;background:#f2faf5;}
+.badge-enc{border-color:#999;color:#555;}
+.badge-ocu{border-color:#c45000;color:#c45000;background:#fff5ec;}
+
+.cr{
+  background:#fafafa;border:1px solid #e0e0e0;border-radius:4px;
+  padding:10px 13px;margin-bottom:7px;
+  display:flex;align-items:center;gap:12px;
+}
+.cr .pos{font-family:'IBM Plex Mono',monospace;font-size:1.3rem;font-weight:700;color:#ccc;width:28px;text-align:center;}
+.cr.p1 .pos{color:#111;}
+.cr .inf{flex:1;}
+.cr .nr{font-size:.92rem;font-weight:600;color:#111;}
+.cr .sr{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:#999;}
+.cr .vr{font-family:'IBM Plex Mono',monospace;font-size:1.2rem;font-weight:700;color:#111;text-align:right;}
+.barra{height:4px;background:#eee;border-radius:2px;margin-top:5px;overflow:hidden;}
+.bf{height:100%;background:#1a7a3a;border-radius:2px;transition:width .8s;}
+.cr-foto{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #ddd;flex-shrink:0;}
+
+.dash-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.dash-card{background:#f7f7f7;border:1px solid #ddd;border-radius:6px;padding:10px;text-align:center;}
+.dash-card .dc-val{font-family:'IBM Plex Mono',monospace;font-size:1.4rem;font-weight:700;color:#003087;}
+.dash-card .dc-lbl{font-size:.6rem;color:#888;margin-top:3px;text-transform:uppercase;letter-spacing:1px;}
+
+.chart-wrap{margin:14px 0;background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;padding:12px;}
+.chart-wrap canvas{max-height:220px;}
+.chart-title{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:2px;color:#999;text-transform:uppercase;margin-bottom:8px;}
+
+.log-scroll{max-height:280px;overflow-y:auto;}
+
+.rel-section{margin-bottom:14px;}
+.rel-section-title{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:2px;color:#fff;text-transform:uppercase;padding:7px 12px;border-radius:4px 4px 0 0;}
+.rel-section-title.voted{background:#1a7a3a;}
+.rel-section-title.absent{background:#c45000;}
+.rel-list{max-height:200px;overflow-y:auto;border:1px solid #ddd;border-top:none;border-radius:0 0 4px 4px;}
+.rel-row{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;font-size:.82rem;border-bottom:1px solid #f0f0f0;}
+.rel-row:last-child{border-bottom:none;}
+.rel-row:nth-child(even){background:#f9f9f9;}
+.rel-nome{font-weight:600;color:#222;}
+.rel-cpf{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:#999;}
+
+.lr{font-family:'IBM Plex Mono',monospace;font-size:.67rem;padding:6px 0;border-bottom:1px solid #eee;color:#444;display:flex;gap:10px;flex-wrap:wrap;}
+.lh{color:#999;white-space:nowrap;flex-shrink:0;}
+.lmes{color:#003087;font-weight:700;white-space:nowrap;}
+
+.cform{background:#f8f8f8;border:1px solid #ddd;border-radius:4px;padding:11px;margin-bottom:7px;}
+.cform h5{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:#999;letter-spacing:2px;margin-bottom:9px;}
+.frow{display:flex;gap:8px;align-items:flex-start;}
+.frow .inp{margin-bottom:8px;}
+.inp-nr{width:80px;flex-shrink:0;}
+
+.foto-preview{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #ccc;margin-bottom:8px;display:none;}
+.foto-preview.show{display:block;}
+
+.nome-funcionario{background:#e8f4ec;border:1px solid #9ec9aa;border-radius:4px;padding:10px 13px;margin-bottom:12px;font-size:.92rem;color:#174d27;text-align:center;}
+.nome-funcionario strong{display:block;font-size:1rem;margin-bottom:2px;}
+
+/* Mesários list */
+.mes-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#fafafa;border:1px solid #e0e0e0;border-radius:4px;margin-bottom:5px;}
+.mes-row .mi{flex:1;}
+.mes-row .mn{font-weight:600;font-size:.88rem;color:#111;}
+.mes-row .mu{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:#888;}
+.mes-row .mdel{cursor:pointer;color:#c45000;font-size:1rem;padding:4px 8px;background:transparent;border:none;}
+.mes-row .mdel:hover{color:#8b1010;}
+.mes-admin-tag{background:#003087;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:.5rem;padding:2px 6px;border-radius:3px;letter-spacing:1px;margin-left:6px;}
+
+#zer-print{display:none;}
+#res-print{display:none;}
+#part-print{display:none;}
+
+@media print{
+  body>*{display:none!important;}
+  #zer-print, #res-print, #part-print{
+    font-family:'Courier New',monospace;
+    font-size:12px;padding:20px;color:#000;background:#fff;
+  }
+  #zer-print.printing{display:block!important;}
+  #res-print.printing{display:block!important;}
+  #part-print.printing{display:block!important;}
+}
+
+#overlay{display:none;position:fixed;inset:0;background:#000c;z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+#overlay.show{display:flex;}
+#modal-excluir.show{display:flex!important;}
+#modal-redef-senha.show{display:flex!important;}
+
+/* Histórico */
+.hist-row{
+  background:#fafafa;border:1px solid #e0e0e0;border-radius:4px;
+  padding:9px 12px;margin-bottom:6px;
+  display:flex;flex-direction:column;gap:3px;
+}
+.hist-row.excl{background:#fff5f5;border-color:#f5c0c0;}
+.hist-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.hist-titulo{font-weight:600;font-size:.88rem;color:#111;flex:1;}
+.hist-meta{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:#777;}
+.hist-extra{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:#8b1010;margin-top:2px;}
+#overlay.show{display:flex;}
+#ov-icn{font-size:3.8rem;animation:pop .32s cubic-bezier(.17,.67,.52,1.4);}
+#ov-msg{font-family:'IBM Plex Mono',monospace;letter-spacing:3px;font-size:.85rem;color:#fff;}
+@keyframes pop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+
+#rodape{background:#003087;border-top:1px solid #002060;padding:7px 18px;display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:#aabbd4;letter-spacing:1px;}
+#btn-acess, #btn-mesario{cursor:pointer;padding:4px 9px;border:1px solid #335588;border-radius:3px;transition:all .15s;}
+#btn-acess:hover, #btn-mesario:hover{border-color:#aabbd4;color:#fff;}
+#btn-acess.on{border-color:#FFD700;color:#FFD700;}
+
+.modo-acess .inp{font-size:1.7rem;}
+.modo-acess .tcl{font-size:1.9rem;padding:18px 0;}
+.modo-acess .btn{font-size:.82rem;padding:16px 8px;}
+.modo-acess .msg{font-size:.96rem;}
+
+/* Mesário logged pill */
+#mesario-pill{
+  display:none;
+  background:#1a7a3a;color:#fff;
+  font-family:'IBM Plex Mono',monospace;font-size:.58rem;
+  padding:3px 9px;border-radius:10px;letter-spacing:1px;
+  margin-right:4px;
+}
+#mesario-pill.show{display:inline-block;}
+</style>
+</head>
+<body>
+
+<!-- ZERÉSIMA IMPRESSÃO -->
+<div id="zer-print">
+  <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px;">
+    <div style="font-size:1.1rem;font-weight:700;letter-spacing:2px;">ZERÉSIMA — URNA ELETRÔNICA CIPA</div>
+    <div id="zer-titulo" style="font-size:.85rem;margin-top:4px;"></div>
+    <div style="font-size:.72rem;margin-top:4px;">Gerada em: <span id="zer-hora"></span></div>
+  </div>
+  <div style="margin-bottom:12px;font-size:.78rem;line-height:1.5;">Declaração: Esta zerésima atesta que, no momento de sua emissão, todos os contadores de votos registram <strong>ZERO (0)</strong> votos.</div>
+  <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+    <thead><tr>
+      <th style="border:1px solid #000;padding:5px 9px;text-align:left;">Nº</th>
+      <th style="border:1px solid #000;padding:5px 9px;text-align:left;">CANDIDATO</th>
+      <th style="border:1px solid #000;padding:5px 9px;text-align:center;">VOTOS</th>
+    </tr></thead>
+    <tbody id="zer-tbody"></tbody>
+  </table>
+  <div style="margin-top:18px;font-size:.72rem;border-top:1px solid #000;padding-top:10px;">
+    Assinatura do Mesário: ___________________________________ &nbsp;&nbsp; Data: ___/___/______
+  </div>
+</div>
+
+<!-- RESULTADO IMPRESSÃO -->
+<div id="res-print">
+  <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px;">
+    <div style="font-size:1.1rem;font-weight:700;letter-spacing:2px;">RESULTADO — URNA ELETRÔNICA CIPA SENAI</div>
+    <div id="res-print-titulo" style="font-size:.85rem;margin-top:4px;"></div>
+    <div id="res-print-info" style="font-size:.72rem;margin-top:4px;"></div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+    <thead><tr>
+      <th style="border:1px solid #000;padding:5px 9px;text-align:center;">Pos.</th>
+      <th style="border:1px solid #000;padding:5px 9px;text-align:left;">CANDIDATO</th>
+      <th style="border:1px solid #000;padding:5px 9px;text-align:center;">Nº</th>
+      <th style="border:1px solid #000;padding:5px 9px;text-align:center;">VOTOS</th>
+      <th style="border:1px solid #000;padding:5px 9px;text-align:center;">%</th>
+    </tr></thead>
+    <tbody id="res-print-tbody"></tbody>
+  </table>
+  <div id="res-print-footer" style="margin-top:18px;font-size:.72rem;border-top:1px solid #000;padding-top:10px;"></div>
+</div>
+
+<!-- PARTICIPAÇÃO IMPRESSÃO -->
+<div id="part-print">
+  <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px;">
+    <div style="font-size:1.1rem;font-weight:700;letter-spacing:2px;">RELATÓRIO DE PARTICIPAÇÃO — CIPA SENAI</div>
+    <div id="part-print-titulo" style="font-size:.85rem;margin-top:4px;"></div>
+    <div id="part-print-info" style="font-size:.72rem;margin-top:4px;"></div>
+  </div>
+  <div style="margin-bottom:16px;">
+    <div style="font-size:.85rem;font-weight:700;margin-bottom:6px;border-bottom:1px solid #000;padding-bottom:4px;">FUNCIONÁRIOS QUE VOTARAM</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.8rem;">
+      <thead><tr>
+        <th style="border:1px solid #000;padding:4px 8px;text-align:center;width:30px;">#</th>
+        <th style="border:1px solid #000;padding:4px 8px;text-align:left;">NOME</th>
+        <th style="border:1px solid #000;padding:4px 8px;text-align:center;">CPF</th>
+      </tr></thead>
+      <tbody id="part-print-votaram"></tbody>
+    </table>
+  </div>
+  <div style="margin-bottom:16px;">
+    <div style="font-size:.85rem;font-weight:700;margin-bottom:6px;border-bottom:1px solid #000;padding-bottom:4px;">FUNCIONÁRIOS QUE NÃO VOTARAM</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.8rem;">
+      <thead><tr>
+        <th style="border:1px solid #000;padding:4px 8px;text-align:center;width:30px;">#</th>
+        <th style="border:1px solid #000;padding:4px 8px;text-align:left;">NOME</th>
+        <th style="border:1px solid #000;padding:4px 8px;text-align:center;">CPF</th>
+      </tr></thead>
+      <tbody id="part-print-nao-votaram"></tbody>
+    </table>
+  </div>
+  <div id="part-print-footer" style="margin-top:18px;font-size:.72rem;border-top:1px solid #000;padding-top:10px;"></div>
+</div>
+
+<!-- URNA -->
+<div id="urna">
+
+  <!-- TOPO -->
+  <div id="topo">
+    <img class="logo-senai" src="/static/senai.jpeg" alt="SENAI">
+    <div id="topo-mid">
+      <h1>Urna Eletrônica</h1>
+      <p>Eleição CIPA</p>
+    </div>
+    <img class="logo-cipa" src="/static/cipa.png" alt="CIPA">
+    <div id="eleicao-badge">—</div>
+  </div>
+
+  <!-- TELAS -->
+  <div id="conteudo">
+
+    <!-- LISTA ELEIÇÕES (público: só em andamento) -->
+    <div id="tela-lista" class="tela ativa">
+      <div class="ttela">Eleições em andamento</div>
+      <div id="lista-wrap"></div>
+    </div>
+
+    <!-- CPF -->
+    <div id="tela-cpf" class="tela">
+      <div class="ttela">Identificação do Eleitor</div>
+      <div class="msg">Digite seu CPF para iniciar a votação.<br>
+        <span style="font-size:.75rem;color:#888">Somente números — sem pontos ou traços.</span></div>
+      <div class="lbc">CPF</div>
+      <input type="tel" id="inp-cpf" class="inp" maxlength="11" placeholder="00000000000"
+        oninput="this.value=this.value.replace(/\D/g,'')"
+        onkeydown="if(event.key==='Enter')confirmarCPF()">
+      <div id="nome-func" class="nome-funcionario" style="display:none;"></div>
+      <div id="msg-cpf" class="msg err" style="display:none"></div>
+      <div class="bts">
+        <button class="btn btn-o" onclick="irParaLista()">← Voltar</button>
+        <button class="btn btn-g" onclick="confirmarCPF()">Confirmar →</button>
+      </div>
+    </div>
+
+    <!-- VOTAÇÃO TSE STYLE -->
+    <div id="tela-votacao-tse" class="tela">
+      <div class="tse-wrap">
+        <div class="tse-header" id="tse-header">ELEIÇÃO CIPA</div>
+
+        <div class="tse-seu-voto">Seu voto para</div>
+        <div style="font-size:.9rem;font-weight:600;color:#222;margin-bottom:10px;" id="tse-cargo-label">Membro da CIPA</div>
+
+        <div class="tse-digitos">
+          <div class="tse-dig cursor" id="tdig-0">&nbsp;</div>
+          <div class="tse-dig" id="tdig-1">&nbsp;</div>
+          <div class="tse-dig" id="tdig-2">&nbsp;</div>
+          <div class="tse-dig" id="tdig-3">&nbsp;</div>
+        </div>
+
+        <div class="tse-cand-area">
+          <div id="tse-cand-info" style="display:none;">
+            <div class="tse-cand-nome-lbl">Nome</div>
+            <div class="tse-cand-nome" id="tse-cand-nome"></div>
+            <div id="tse-cand-foto-wrap"></div>
+          </div>
+          <div id="tse-instruct" class="tse-instruct">
+            Digite o número do candidato e tecle <strong>CONFIRMA</strong>.<br>
+            Para votar em <strong>BRANCO</strong>, aperte a tecla correspondente.<br>
+            Para <strong>CORRIGIR</strong>, tecle a tecla laranja.
+          </div>
+        </div>
+      </div>
+
+      <div class="tse-botoes">
+        <button class="tcl" onclick="tseDig('1')">1</button>
+        <button class="tcl" onclick="tseDig('2')">2</button>
+        <button class="tcl" onclick="tseDig('3')">3</button>
+        <button class="tcl tcl-action tcl-branco" onclick="tseBranco()">BRANCO</button>
+        <button class="tcl" onclick="tseDig('4')">4</button>
+        <button class="tcl" onclick="tseDig('5')">5</button>
+        <button class="tcl" onclick="tseDig('6')">6</button>
+        <button class="tcl tcl-action tcl-corrige" onclick="tseCorrige()">CORRIGE</button>
+        <button class="tcl" onclick="tseDig('7')">7</button>
+        <button class="tcl" onclick="tseDig('8')">8</button>
+        <button class="tcl" onclick="tseDig('9')">9</button>
+        <button class="tcl tcl-action tcl-confirma" onclick="tseConfirma()">CONFIRMA</button>
+        <div></div>
+        <button class="tcl" onclick="tseDig('0')">0</button>
+        <div></div>
+        <div></div>
+      </div>
+
+      <div class="tse-voltar">
+        <button class="btn-voltar-tse" onclick="tseVoltarLista()">← Cancelar e voltar</button>
+      </div>
+
+      <!-- Referência discreta de candidatos -->
+      <div class="tse-ref" id="tse-ref" style="display:none;">
+        <div class="tse-ref-title">Candidatos</div>
+        <div class="tse-ref-list" id="tse-ref-list"></div>
+      </div>
+    </div>
+
+    <!-- CONFIRMAÇÃO -->
+    <div id="tela-confirmar" class="tela">
+      <div class="ttela">Confirmar voto</div>
+      <div id="msg-conf" class="msg ok"></div>
+      <div class="bts">
+        <button class="btn btn-o" onclick="irParaVotacao()">← Corrigir</button>
+        <button class="btn btn-g" onclick="submitVoto()">✔ Confirmar</button>
+      </div>
+    </div>
+
+    <!-- VOTO REGISTRADO -->
+    <div id="tela-ok" class="tela">
+      <div style="text-align:center;padding:24px 0;">
+        <div style="font-size:3.5rem;margin-bottom:12px;">✓</div>
+        <div style="font-family:'IBM Plex Mono',monospace;letter-spacing:3px;font-size:1rem;color:#1a7a3a;">VOTO REGISTRADO</div>
+        <div style="color:#888;margin-top:8px;font-size:.85rem;">Obrigado pela participação.</div>
+        <button class="btn btn-g" onclick="irParaLista()" style="margin-top:22px;width:100%;">Próximo eleitor →</button>
+      </div>
+    </div>
+
+    <!-- RESULTADO PÚBLICO (sem acesso ao painel) -->
+    <div id="tela-resultado-publico" class="tela">
+      <div class="ttela">Resultado da Eleição</div>
+      <div id="res-pub-wrap"></div>
+      <div class="bts">
+        <button class="btn btn-n" onclick="irParaLista()" style="width:100%;">← Voltar à tela inicial</button>
+      </div>
+    </div>
+
+    <!-- MESÁRIO LOGIN -->
+    <div id="tela-mes-senha" class="tela">
+      <div class="ttela">Área do Mesário</div>
+      <div style="padding:14px 0;display:flex;flex-direction:column;gap:11px;">
+        <div style="font-size:.84rem;color:#666;">Informe seu usuário e senha.</div>
+        <div>
+          <div class="lbc">Usuário</div>
+          <input type="text" id="inp-mes-usuario" class="inp sm" placeholder="seu.usuario" style="letter-spacing:1px;"
+            onkeydown="if(event.key==='Enter')document.getElementById('inp-mes-senha').focus()">
+        </div>
+        <div>
+          <div class="lbc">Senha</div>
+          <input type="password" id="inp-mes-senha" class="inp sm" placeholder="••••••••"
+            style="letter-spacing:6px;"
+            onkeydown="if(event.key==='Enter')validarSenha()">
+        </div>
+        <div id="msg-senha" class="msg err" style="display:none"></div>
+        <div class="bts">
+          <button class="btn btn-n" onclick="irParaLista()">← Voltar</button>
+          <button class="btn btn-g" onclick="validarSenha()">Entrar →</button>
+        </div>
+        <div style="font-size:.68rem;color:#aaa;text-align:center;margin-top:6px;">
+          Primeiro acesso: <strong>admin</strong> / <strong>cipa2025</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAINEL MESÁRIO -->
+    <div id="tela-mesario" class="tela">
+      <div class="ttela" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Painel do Mesário</span>
+        <span id="mesario-atual" style="font-size:.55rem;color:#1a7a3a;text-transform:none;letter-spacing:1px;"></span>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div class="lbc">Nova eleição — título</div>
+        <input type="text" id="inp-titulo" class="inp sm" placeholder="Ex: CIPA — Polo Norte">
+        <div class="file-input-wrap">
+          <div class="lbc">Planilha de funcionários (CSV ou XLSX)</div>
+          <input type="file" id="inp-planilha" accept=".csv,.txt,.tsv,.xlsx,.xls">
+          <span class="file-label">Arquivo CSV ou Excel (.xlsx) com colunas: NOME e CPF</span>
+        </div>
+        <button class="btn btn-g" onclick="criarEleicao()" style="width:100%;">+ Criar nova eleição</button>
+      </div>
+      <div style="border-top:1px solid #eee;padding-top:12px;margin-bottom:12px;">
+        <div class="ttela" style="margin-bottom:9px;">Eleições existentes</div>
+        <div id="lista-mes-wrap"></div>
+      </div>
+      <div class="bts" style="flex-direction:column;gap:7px;">
+        <button class="btn btn-g" onclick="verHistoricoEleicoes()" style="background:#003087;width:100%;">📜 Histórico de eleições</button>
+        <button class="btn btn-n" onclick="irParaMesarios()" style="width:100%;font-size:.6rem;">⚙ Cadastrar novo mesário</button>
+        <button class="btn btn-n" onclick="mesarioLogout()" style="width:100%;">🔒 Sair (logout)</button>
+      </div>
+    </div>
+
+    <!-- CADASTRAR MESÁRIO -->
+    <div id="tela-mesarios" class="tela">
+      <div class="ttela">Gerenciar mesários</div>
+
+      <!-- SEÇÃO: Cadastrar novo -->
+      <div style="margin-bottom:12px;">
+        <div class="lbc" style="color:#003087;font-weight:700;">➕ Cadastrar novo mesário</div>
+        <div style="font-size:.7rem;color:#888;margin-bottom:8px;">O novo mesário deverá trocar a senha no primeiro acesso.</div>
+        <div class="lbc">Nome completo</div>
+        <input type="text" id="inp-new-mes-nome" class="inp sm" placeholder="Ex: João da Silva">
+        <div class="lbc">Usuário (login)</div>
+        <input type="text" id="inp-new-mes-user" class="inp sm" placeholder="joao.silva" style="letter-spacing:1px;">
+        <div class="lbc">Senha temporária</div>
+        <input type="password" id="inp-new-mes-pass" class="inp sm" placeholder="••••••••" style="letter-spacing:6px;">
+        <button class="btn btn-g" onclick="cadastrarMesario()" style="width:100%;">+ Cadastrar mesário</button>
+      </div>
+
+      <!-- SEÇÃO: Alterar senha (próprio) -->
+      <div style="border-top:1px solid #eee;padding-top:12px;margin-bottom:12px;">
+        <div class="lbc" style="color:#003087;font-weight:700;">🔑 Alterar minha senha</div>
+        <div style="font-size:.7rem;color:#888;margin-bottom:8px;" id="alterar-senha-sub">Mudar a senha da conta que está logada.</div>
+        <div class="lbc">Senha atual</div>
+        <input type="password" id="inp-sn-atual" class="inp sm" placeholder="••••••••" style="letter-spacing:6px;">
+        <div class="lbc">Nova senha</div>
+        <input type="password" id="inp-sn-nova" class="inp sm" placeholder="••••••••" style="letter-spacing:6px;">
+        <div class="lbc">Confirme a nova senha</div>
+        <input type="password" id="inp-sn-conf" class="inp sm" placeholder="••••••••" style="letter-spacing:6px;">
+        <button class="btn btn-g" onclick="alterarMinhaSenha()" style="width:100%;">💾 Salvar nova senha</button>
+      </div>
+
+      <!-- SEÇÃO: Lista + alteração admin -->
+      <div style="border-top:1px solid #eee;padding-top:12px;margin-bottom:12px;">
+        <div class="lbc" style="color:#003087;font-weight:700;">👥 Mesários cadastrados</div>
+        <div style="font-size:.7rem;color:#888;margin-bottom:8px;" id="lista-mes-hint">Clique em um usuário para redefinir a senha (apenas admin).</div>
+        <div id="lista-mesarios-wrap"></div>
+      </div>
+
+      <button class="btn btn-n" onclick="voltarMesario()" style="width:100%;">← Voltar</button>
+    </div>
+
+    <!-- TROCA DE SENHA OBRIGATÓRIA (primeiro login) -->
+    <div id="tela-troca-senha-obrig" class="tela">
+      <div class="ttela">Trocar senha</div>
+      <div class="msg" style="background:#fff9e6;border-color:#f0c36d;color:#6b4d00;margin-bottom:12px;">
+        <strong>🔐 Primeiro acesso</strong><br>
+        Por segurança, você precisa definir uma nova senha antes de continuar.
+      </div>
+      <div class="lbc">Senha atual</div>
+      <input type="password" id="inp-to-atual" class="inp sm" placeholder="••••••••" style="letter-spacing:6px;">
+      <div class="lbc">Nova senha</div>
+      <input type="password" id="inp-to-nova" class="inp sm" placeholder="••••••••" style="letter-spacing:6px;">
+      <div class="lbc">Confirme a nova senha</div>
+      <input type="password" id="inp-to-conf" class="inp sm" placeholder="••••••••" style="letter-spacing:6px;"
+        onkeydown="if(event.key==='Enter')salvarTrocaSenhaObrigatoria()">
+      <div id="msg-to" class="msg err" style="display:none"></div>
+      <div class="bts">
+        <button class="btn btn-n" onclick="cancelarTrocaSenhaObrigatoria()">Cancelar (sair)</button>
+        <button class="btn btn-g" onclick="salvarTrocaSenhaObrigatoria()">✔ Salvar nova senha</button>
+      </div>
+    </div>
+
+    <!-- MODAL: ADMIN REDEFININDO SENHA DE OUTRO USUÁRIO -->
+    <!-- Renderizado via modal-redef-senha abaixo do corpo da página -->
+
+    <!-- CONFIGURAR ELEIÇÃO -->
+    <div id="tela-configurar" class="tela">
+      <div class="ttela">Configurar eleição</div>
+      <div id="msg-cfg" class="msg" style="margin-bottom:12px;"></div>
+      <div id="sec-cands">
+        <div class="lbc">Quantidade de candidatos</div>
+        <input type="number" id="qtd-cands" class="inp sm" min="1" max="20"
+          placeholder="Ex: 4" style="width:110px;" oninput="gerarFormCands()">
+        <div id="form-cands"></div>
+        <div class="bts" style="margin-top:10px;">
+          <button class="btn btn-n" onclick="voltarMesario()">← Voltar</button>
+          <button class="btn btn-g" onclick="iniciarEleicao()">▶ Iniciar eleição</button>
+        </div>
+      </div>
+      <div id="sec-acoes" style="display:none;">
+        <div class="bts" style="flex-direction:column;gap:7px;margin-top:4px;">
+          <button class="btn btn-g" onclick="verResultado()">📊 Ver resultado / Dashboard</button>
+          <button class="btn btn-g" onclick="verRelatorioParticipacao()" style="background:#003087;">📋 Relatório de participação</button>
+          <button class="btn btn-n" onclick="verLog()">📋 Log de votações</button>
+          <button class="btn btn-n" onclick="imprimirZeresima()">🖨 Imprimir zerésima</button>
+          <button class="btn btn-r" id="btn-encerrar" onclick="encerrarEleicao()">⛔ Encerrar eleição</button>
+          <button class="btn btn-o" id="btn-ocultar" onclick="ocultarEleicao()">👁 Ocultar da tela inicial</button>
+          <button class="btn btn-g" id="btn-exibir" onclick="exibirEleicao()" style="display:none;">👁 Exibir na tela inicial</button>
+          <button class="btn btn-n" onclick="voltarMesario()">← Voltar</button>
+        </div>
+        <div style="text-align:center;margin-top:14px;padding-top:10px;border-top:1px dashed #eee;">
+          <a href="javascript:abrirModalExcluir()"
+             style="font-family:'IBM Plex Mono',monospace;font-size:.55rem;letter-spacing:1px;color:#bbb;text-decoration:none;cursor:pointer;"
+             onmouseover="this.style.color='#cc2222'" onmouseout="this.style.color='#bbb'">
+            excluir permanentemente esta eleição
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTADO (mesário) -->
+    <div id="tela-resultado" class="tela">
+      <div class="ttela">Dashboard de Resultados</div>
+      <div id="res-wrap"></div>
+      <div class="bts" style="gap:7px;">
+        <button class="btn btn-n" onclick="voltarMesario()" style="flex:1;">← Voltar</button>
+        <button class="btn btn-g" onclick="imprimirResultado()" style="flex:1;">🖨 Imprimir</button>
+      </div>
+    </div>
+
+    <!-- RELATÓRIO PARTICIPAÇÃO -->
+    <div id="tela-participacao" class="tela">
+      <div class="ttela">Relatório de Participação</div>
+      <div id="part-wrap"></div>
+      <div class="bts" style="gap:7px;">
+        <button class="btn btn-n" onclick="voltarMesario()" style="flex:1;">← Voltar</button>
+        <button class="btn btn-g" onclick="imprimirRelatorioParticipacao()" style="flex:1;">🖨 Imprimir</button>
+      </div>
+    </div>
+
+    <!-- LOG -->
+    <div id="tela-log" class="tela">
+      <div class="ttela">Log de votações</div>
+      <div class="log-scroll" id="log-wrap"></div>
+      <button class="btn btn-n" onclick="mostrarTela('tela-configurar')" style="width:100%;margin-top:11px;">← Voltar</button>
+    </div>
+
+    <!-- HISTÓRICO DE ELEIÇÕES -->
+    <div id="tela-historico" class="tela">
+      <div class="ttela">Histórico de Eleições</div>
+      <div id="hist-wrap"></div>
+      <button class="btn btn-n" onclick="voltarMesario()" style="width:100%;margin-top:11px;">← Voltar ao painel</button>
+    </div>
+
+  </div><!-- /conteudo -->
+
+  <!-- RODAPÉ -->
+  <div id="rodape">
+    <span id="relogio">--:--</span>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <span id="mesario-pill"></span>
+      <div id="btn-acess" onclick="toggleAcess()">♿ Acessibilidade</div>
+      <div id="btn-mesario" onclick="irParaMesario()">⚙ Mesário</div>
+    </div>
+    <span>CIPA · SENAI</span>
+  </div>
+
+</div><!-- /urna -->
+
+<!-- OVERLAY -->
+<div id="overlay">
+  <div id="ov-icn">✓</div>
+  <div id="ov-msg"></div>
+</div>
+
+<!-- MODAL EXCLUIR ELEIÇÃO -->
+<div id="modal-excluir" style="display:none;position:fixed;inset:0;background:#000a;z-index:210;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:8px;max-width:380px;width:92%;padding:22px;box-shadow:0 10px 40px #0004;">
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-size:2.6rem;">🗑</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:2px;color:#cc2222;margin-top:4px;text-transform:uppercase;font-weight:700;">Excluir eleição</div>
+    </div>
+    <div class="msg err" style="margin-bottom:12px;">
+      <strong>Esta ação é irreversível.</strong><br>
+      Todos os votos, candidatos, fotos e logs serão apagados permanentemente. Os CPFs dos eleitores serão liberados.<br><br>
+      Para confirmar, digite sua senha de mesário:
+    </div>
+    <div class="lbc">Sua senha</div>
+    <input type="password" id="inp-excluir-senha" class="inp sm" placeholder="••••••••" style="letter-spacing:6px;"
+      onkeydown="if(event.key==='Enter')confirmarExclusaoEleicao()">
+    <div id="msg-excluir" class="msg err" style="display:none"></div>
+    <div class="bts" style="gap:7px;">
+      <button class="btn btn-n" onclick="fecharModalExcluir()" style="flex:1;">Cancelar</button>
+      <button class="btn btn-r" onclick="confirmarExclusaoEleicao()" style="flex:1;">🗑 Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REDEFINIR SENHA (admin) -->
+<div id="modal-redef-senha" style="display:none;position:fixed;inset:0;background:#000a;z-index:210;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:8px;max-width:380px;width:92%;padding:22px;box-shadow:0 10px 40px #0004;">
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-size:2.6rem;">🔑</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:2px;color:#003087;margin-top:4px;text-transform:uppercase;font-weight:700;">Redefinir senha</div>
+      <div style="font-size:.8rem;color:#444;margin-top:6px;">Usuário: <strong id="redef-alvo-nome"></strong></div>
+    </div>
+    <div class="msg" style="margin-bottom:12px;">
+      Como administrador, você pode definir uma nova senha para este usuário. Ele será obrigado a trocá-la no próximo login.
+    </div>
+    <div class="lbc">Nova senha (temporária)</div>
+    <input type="password" id="inp-redef-nova" class="inp sm" placeholder="••••••••" style="letter-spacing:6px;">
+    <div class="lbc">Confirme a nova senha</div>
+    <input type="password" id="inp-redef-conf" class="inp sm" placeholder="••••••••" style="letter-spacing:6px;"
+      onkeydown="if(event.key==='Enter')confirmarRedefSenha()">
+    <div id="msg-redef" class="msg err" style="display:none"></div>
+    <div class="bts" style="gap:7px;">
+      <button class="btn btn-n" onclick="fecharModalRedefSenha()" style="flex:1;">Cancelar</button>
+      <button class="btn btn-g" onclick="confirmarRedefSenha()" style="flex:1;">💾 Redefinir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════
+let eAtual = null;
+let cpfAtual = '';
+let numAtual = '';
+let modoAcess = false;
+let isVotoBranco = false;
+let chartBarInstance = null;
+let chartPieInstance = null;
+let mesarioLogadoNome = null;
+
+// ═══════════════════════════════════════════
+// ÁUDIO
+// ═══════════════════════════════════════════
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+function tone(freq, dur, type='sine', vol=0.15) {
+  if (AC.state === 'suspended') AC.resume();
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.connect(g); g.connect(AC.destination);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + dur/1000);
+  o.start(); o.stop(AC.currentTime + dur/1000);
+}
+function beepD()   { tone(1000, 75, 'sine', 0.14); }
+function beepOK()  { tone(880,110,'sine',.17); setTimeout(()=>tone(1320,170,'sine',.2),130); }
+function beepErr() { tone(200, 380,'sawtooth',.22); }
+function beepBr()  { tone(640, 130,'sine',.14); }
+function beepFim() { tone(1100,55,'sine',.11); setTimeout(()=>tone(1100,55,'sine',.11),75); }
+
+// ═══════════════════════════════════════════
+// TTS
+// ═══════════════════════════════════════════
+function falar(txt) {
+  if (!modoAcess) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(txt);
+  u.lang = 'pt-BR'; u.rate = 0.88;
+  speechSynthesis.speak(u);
+}
+function toggleAcess() {
+  modoAcess = !modoAcess;
+  document.getElementById('urna').classList.toggle('modo-acess', modoAcess);
+  document.getElementById('btn-acess').classList.toggle('on', modoAcess);
+  falar(modoAcess ? 'Acessibilidade ativada. Vou guiar cada etapa da votação.' : '');
+}
+
+// ═══════════════════════════════════════════
+// RELÓGIO
+// ═══════════════════════════════════════════
+function tick() {
+  const n = new Date();
+  document.getElementById('relogio').textContent =
+    String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+}
+setInterval(tick, 1000); tick();
+
+// ═══════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════
+function mostrarTela(id) {
+  document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+  document.getElementById(id).classList.add('ativa');
+}
+
+// ═══════════════════════════════════════════
+// LISTA ELEIÇÕES PÚBLICA (só em andamento)
+// ═══════════════════════════════════════════
+async function irParaLista() {
+  eAtual = null;
+  document.getElementById('eleicao-badge').textContent = '—';
+  mostrarTela('tela-lista');
+  falar('Tela inicial. Selecione uma eleição.');
+  const res = await fetch('/api/eleicoes').then(r => r.json()).catch(() => ({eleicoes:[]}));
+  const wrap = document.getElementById('lista-wrap');
+  if (!res.eleicoes || !res.eleicoes.length) {
+    wrap.innerHTML = '<div class="msg">Nenhuma eleição disponível no momento.</div>';
+    return;
+  }
+  // Sort: open first, then closed
+  res.eleicoes.sort((a, b) => {
+    if (a.aberta && !b.aberta) return -1;
+    if (!a.aberta && b.aberta) return 1;
+    return (b.criada_em || '').localeCompare(a.criada_em || '');
+  });
+  wrap.innerHTML = '';
+  res.eleicoes.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    if (e.aberta) {
+      div.innerHTML = `<div>
+        <div class="ct">${e.titulo}</div>
+        <div class="cm">Iniciada em ${e.criada_em}</div>
+      </div><span class="badge badge-on">EM ANDAMENTO</span>`;
+      div.onclick = () => {
+        eAtual = e.id;
+        document.getElementById('eleicao-badge').textContent = e.titulo;
+        irParaCPF();
+      };
+    } else if (e.encerrada) {
+      div.innerHTML = `<div>
+        <div class="ct">${e.titulo}</div>
+        <div class="cm">Encerrada em ${e.encerrada_em || e.criada_em}</div>
+      </div><span class="badge badge-enc">ENCERRADA</span>`;
+      div.onclick = () => {
+        // Route directly to public results view — NEVER the mesário panel
+        verResultadoPublico(e.id, e.titulo);
+      };
+    }
+    wrap.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════
+// CPF
+// ═══════════════════════════════════════════
+function irParaCPF() {
+  mostrarTela('tela-cpf');
+  document.getElementById('inp-cpf').value = '';
+  document.getElementById('msg-cpf').style.display = 'none';
+  document.getElementById('nome-func').style.display = 'none';
+  setTimeout(() => document.getElementById('inp-cpf').focus(), 80);
+  falar('Identificação do eleitor. Digite seu CPF com onze dígitos.');
+}
+
+async function confirmarCPF() {
+  const cpf = document.getElementById('inp-cpf').value.replace(/\D/g,'');
+  const mEl = document.getElementById('msg-cpf');
+  const nEl = document.getElementById('nome-func');
+  mEl.style.display = 'none';
+  nEl.style.display = 'none';
+  if (cpf.length !== 11) {
+    mEl.textContent = 'CPF deve ter 11 dígitos.';
+    mEl.style.display = 'block';
+    beepErr(); falar('CPF inválido.'); return;
+  }
+  const r = await fetch(`/api/eleicoes/${eAtual}/validar_cpf`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({cpf})
+  }).then(r => r.json());
+  if (!r.ok) {
+    mEl.textContent = r.msg; mEl.style.display = 'block';
+    beepErr(); falar(r.msg); return;
+  }
+  if (r.nome_funcionario) {
+    nEl.innerHTML = `<strong>${r.nome_funcionario}</strong>Funcionário identificado`;
+    nEl.style.display = 'block';
+  }
+  cpfAtual = cpf; beepOK();
+  setTimeout(() => irParaVotacao(), 1200);
+}
+
+// ═══════════════════════════════════════════
+// VOTAÇÃO TSE STYLE
+// ═══════════════════════════════════════════
+async function irParaVotacao() {
+  mostrarTela('tela-votacao-tse');
+  numAtual = ''; isVotoBranco = false;
+  atualizarDigitos();
+  resetCandidatoInfo();
+  // Update header with election name
+  const badge = document.getElementById('eleicao-badge').textContent;
+  document.getElementById('tse-header').textContent = badge.toUpperCase();
+  // Load candidate reference list
+  await carregarReferenciaCandidatos();
+  falar('Tela de votação. Digite o número do candidato e pressione confirma.');
+}
+
+async function carregarReferenciaCandidatos() {
+  const ref = document.getElementById('tse-ref');
+  const list = document.getElementById('tse-ref-list');
+  if (!ref || !list) return;
+  try {
+    const r = await fetch(`/api/eleicoes/${eAtual}/candidatos`).then(r => r.json()).catch(() => null);
+    if (r && r.ok && r.candidatos && r.candidatos.length) {
+      list.innerHTML = r.candidatos.map(c =>
+        `<span class="tse-ref-item"><b>${c.numero}</b>${c.nome}</span>`
+      ).join('');
+      ref.style.display = 'block';
+    } else {
+      ref.style.display = 'none';
+    }
+  } catch (e) {
+    ref.style.display = 'none';
+  }
+}
+
+function resetCandidatoInfo() {
+  document.getElementById('tse-cand-info').style.display = 'none';
+  document.getElementById('tse-instruct').style.display = 'block';
+  document.getElementById('tse-cand-nome').textContent = '';
+  document.getElementById('tse-cand-foto-wrap').innerHTML = '';
+}
+
+function atualizarDigitos() {
+  const max = 4;
+  for (let i = 0; i < max; i++) {
+    const box = document.getElementById(`tdig-${i}`);
+    if (!box) continue;
+    const char = numAtual[i];
+    box.textContent = char !== undefined ? char : '\u00A0';
+    box.classList.toggle('cursor', i === numAtual.length && numAtual.length < max);
+  }
+}
+
+function tseDig(d) {
+  if (numAtual.length >= 4) return;
+  numAtual += d; beepD(); falar(d);
+  atualizarDigitos();
+  buscarCandidato();
+}
+
+async function buscarCandidato() {
+  if (numAtual.length < 2) return;
+  const r = await fetch(`/api/eleicoes/${eAtual}/candidato/${numAtual}`).then(r=>r.json()).catch(()=>null);
+  if (r && r.ok) {
+    const c = r.candidato;
+    document.getElementById('tse-instruct').style.display = 'none';
+    document.getElementById('tse-cand-info').style.display = 'block';
+    document.getElementById('tse-cand-nome').textContent = c.nome;
+    const fotoWrap = document.getElementById('tse-cand-foto-wrap');
+    if (c.foto) {
+      fotoWrap.innerHTML = `<img class="tse-cand-foto" src="${c.foto}" alt="">`;
+    } else {
+      fotoWrap.innerHTML = `<div class="tse-cand-foto-placeholder">Sem foto</div>`;
+    }
+    beepFim();
+    falar(c.nome);
+  }
+}
+
+function tseCorrige() {
+  numAtual = ''; beepBr();
+  atualizarDigitos();
+  resetCandidatoInfo();
+  falar('Número corrigido. Digite novamente.');
+}
+
+function tseBranco() {
+  beepBr(); isVotoBranco = true;
+  document.getElementById('msg-conf').innerHTML =
+    '⬜ <strong>VOTO EM BRANCO</strong><br><small style="color:#888">Confirmar voto em branco?</small>';
+  document.getElementById('msg-conf').className = 'msg';
+  mostrarTela('tela-confirmar');
+  falar('Voto em branco. Pressione confirmar ou corrige.');
+}
+
+async function tseConfirma() {
+  if (!numAtual) { beepErr(); falar('Nenhum número digitado.'); return; }
+  const r = await fetch(`/api/eleicoes/${eAtual}/candidato/${numAtual}`).then(r=>r.json()).catch(()=>({"ok":false}));
+  if (!r.ok) {
+    beepErr();
+    alert(`Número ${numAtual} não encontrado.`);
+    tseCorrige();
+    return;
+  }
+  const c = r.candidato; isVotoBranco = false;
+  let fotoHtml = c.foto ? `<img src="${c.foto}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;margin-bottom:6px;">` : '';
+  document.getElementById('msg-conf').innerHTML =
+    `${fotoHtml}<br>Candidato: <strong>${c.nome}</strong><br>Número: <strong>${c.numero}</strong>`;
+  document.getElementById('msg-conf').className = 'msg ok';
+  mostrarTela('tela-confirmar');
+  falar(`Confirmação. Candidato ${c.nome}, número ${c.numero}.`);
+}
+
+function tseVoltarLista() {
+  if (confirm('Cancelar e voltar à tela inicial?')) {
+    irParaLista();
+  }
+}
+
+async function submitVoto() {
+  const numero = isVotoBranco ? '00' : numAtual;
+  const r = await fetch(`/api/eleicoes/${eAtual}/votar`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({cpf: cpfAtual, numero})
+  }).then(r => r.json());
+  if (!r.ok) { beepErr(); falar(r.msg); alert(r.msg); return; }
+  beepOK();
+  showOverlay('✓', 'VOTO REGISTRADO');
+  falar('Voto registrado com sucesso. Obrigado pela participação.');
+  setTimeout(() => { hideOverlay(); mostrarTela('tela-ok'); }, 1700);
+}
+
+// ═══════════════════════════════════════════
+// OVERLAY
+// ═══════════════════════════════════════════
+function showOverlay(i, m) {
+  document.getElementById('ov-icn').textContent = i;
+  document.getElementById('ov-msg').textContent = m;
+  document.getElementById('overlay').classList.add('show');
+}
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); }
+
+// ═══════════════════════════════════════════
+// MESÁRIO LOGIN
+// ═══════════════════════════════════════════
+async function irParaMesario() {
+  // If already logged in, go straight to panel
+  const me = await fetch('/api/mesario/me').then(r => r.json()).catch(() => ({ok:false}));
+  if (me.ok) {
+    mesarioLogadoNome = me.nome;
+    updateMesarioPill(me.nome);
+    if (me.senha_temporaria) {
+      irParaTrocaSenhaObrigatoria();
+      return;
+    }
+    abrirPainelMesario();
+    return;
+  }
+  document.getElementById('inp-mes-usuario').value = '';
+  document.getElementById('inp-mes-senha').value = '';
+  document.getElementById('msg-senha').style.display = 'none';
+  mostrarTela('tela-mes-senha');
+  setTimeout(() => document.getElementById('inp-mes-usuario').focus(), 80);
+}
+
+async function validarSenha() {
+  const usuario = document.getElementById('inp-mes-usuario').value.trim();
+  const senha = document.getElementById('inp-mes-senha').value;
+  if (!usuario || !senha) {
+    document.getElementById('msg-senha').textContent = 'Preencha usuário e senha.';
+    document.getElementById('msg-senha').style.display = 'block';
+    beepErr(); return;
+  }
+  const r = await fetch('/api/mesario/login', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({usuario, senha})
+  }).then(r => r.json());
+  if (!r.ok) {
+    document.getElementById('msg-senha').textContent = r.msg || 'Usuário ou senha incorretos.';
+    document.getElementById('msg-senha').style.display = 'block';
+    beepErr(); return;
+  }
+  mesarioLogadoNome = r.nome;
+  updateMesarioPill(r.nome);
+  beepOK();
+  // First login OR password reset by admin: force password change
+  if (r.senha_temporaria) {
+    irParaTrocaSenhaObrigatoria();
+    return;
+  }
+  await abrirPainelMesario();
+}
+
+async function mesarioLogout() {
+  await fetch('/api/mesario/logout', {method: 'POST'});
+  mesarioLogadoNome = null;
+  updateMesarioPill(null);
+  irParaLista();
+}
+
+function updateMesarioPill(nome) {
+  const pill = document.getElementById('mesario-pill');
+  if (nome) {
+    pill.textContent = '👤 ' + nome;
+    pill.classList.add('show');
+  } else {
+    pill.classList.remove('show');
+  }
+}
+
+async function abrirPainelMesario() {
+  mostrarTela('tela-mesario');
+  document.getElementById('mesario-atual').textContent = mesarioLogadoNome ? '👤 ' + mesarioLogadoNome : '';
+  const res = await fetch('/api/eleicoes/todas').then(r => r.json()).catch(() => ({eleicoes:[]}));
+  const wrap = document.getElementById('lista-mes-wrap');
+  wrap.innerHTML = '';
+  if (!res.eleicoes || !res.eleicoes.length) {
+    wrap.innerHTML = '<div class="msg">Nenhuma eleição criada.</div>'; return;
+  }
+  res.eleicoes.forEach(e => {
+    let st = 'PENDENTE';
+    let cls = '';
+    if (e.encerrada) { st = 'ENCERRADA'; cls = 'badge-enc'; }
+    else if (e.aberta) { st = 'EM ANDAMENTO'; cls = 'badge-on'; }
+    if (e.oculta) st += ' · OCULTA';
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `<div>
+      <div class="ct">${e.titulo}</div>
+      <div class="cm">${e.criada_em} · ${e.total_votos} voto(s)</div>
+    </div><span class="badge ${cls}">${st}</span>`;
+    div.onclick = () => abrirCfg(e.id, e.titulo);
+    wrap.appendChild(div);
+  });
+}
+
+function voltarMesario() { abrirPainelMesario(); }
+
+// ═══════════════════════════════════════════
+// CADASTRAR MESÁRIO
+// ═══════════════════════════════════════════
+async function irParaMesarios() {
+  mostrarTela('tela-mesarios');
+  document.getElementById('inp-new-mes-nome').value = '';
+  document.getElementById('inp-new-mes-user').value = '';
+  document.getElementById('inp-new-mes-pass').value = '';
+  await carregarMesarios();
+}
+
+async function carregarMesarios() {
+  const r = await fetch('/api/mesario/listar').then(r => r.json()).catch(() => ({mesarios:[]}));
+  const me = await fetch('/api/mesario/me').then(r => r.json()).catch(() => ({ok:false}));
+  const souAdmin = me.ok && me.admin;
+  const meuUsuario = me.ok ? me.usuario : null;
+
+  // Hide the hint if not admin
+  const hint = document.getElementById('lista-mes-hint');
+  if (hint) hint.style.display = souAdmin ? 'block' : 'none';
+
+  const wrap = document.getElementById('lista-mesarios-wrap');
+  wrap.innerHTML = '';
+  if (!r.ok || !r.mesarios.length) { wrap.innerHTML = '<div class="msg">Nenhum mesário cadastrado.</div>'; return; }
+
+  r.mesarios.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'mes-row';
+    const adminTag = m.admin ? '<span class="mes-admin-tag">ADMIN</span>' : '';
+    const isMe = (m.usuario === meuUsuario);
+    const meTag = isMe ? '<span class="mes-admin-tag" style="background:#1a7a3a;">VOCÊ</span>' : '';
+
+    // Action buttons
+    let actions = '';
+    if (souAdmin && !isMe) {
+      // Admin can reset anyone else's password
+      actions += `<button class="mdel" title="Redefinir senha" style="color:#003087;" onclick="abrirModalRedefSenha('${m.usuario}', '${m.nome.replace(/'/g, "\\'")}')">🔑</button>`;
+    }
+    if (!m.admin && !isMe) {
+      actions += `<button class="mdel" title="Excluir" onclick="excluirMesario('${m.usuario}', '${m.nome.replace(/'/g, "\\'")}')">✕</button>`;
+    }
+
+    row.innerHTML = `<div class="mi">
+      <div class="mn">${m.nome} ${adminTag}${meTag}</div>
+      <div class="mu">@${m.usuario} · criado em ${m.criado_em}</div>
+    </div><div style="display:flex;gap:4px;">${actions}</div>`;
+    wrap.appendChild(row);
+  });
+}
+
+async function cadastrarMesario() {
+  const nome = document.getElementById('inp-new-mes-nome').value.trim();
+  const usuario = document.getElementById('inp-new-mes-user').value.trim().toLowerCase();
+  const senha = document.getElementById('inp-new-mes-pass').value;
+  if (!nome || !usuario || !senha) { alert('Preencha todos os campos.'); return; }
+  const r = await fetch('/api/mesario/cadastrar', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({nome, usuario, senha})
+  }).then(r => r.json());
+  if (!r.ok) { alert(r.msg); beepErr(); return; }
+  beepOK();
+  alert(r.msg);
+  document.getElementById('inp-new-mes-nome').value = '';
+  document.getElementById('inp-new-mes-user').value = '';
+  document.getElementById('inp-new-mes-pass').value = '';
+  await carregarMesarios();
+}
+
+async function excluirMesario(usuario, nome) {
+  if (!confirm(`Excluir mesário "${nome}"?`)) return;
+  const r = await fetch('/api/mesario/excluir', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({usuario})
+  }).then(r => r.json());
+  if (!r.ok) { alert(r.msg); beepErr(); return; }
+  beepOK();
+  await carregarMesarios();
+}
+
+// ═══════════════════════════════════════════
+// ALTERAR MINHA SENHA (painel mesário)
+// ═══════════════════════════════════════════
+async function alterarMinhaSenha() {
+  const senha_atual = document.getElementById('inp-sn-atual').value;
+  const senha_nova = document.getElementById('inp-sn-nova').value;
+  const senha_nova_conf = document.getElementById('inp-sn-conf').value;
+  if (!senha_atual || !senha_nova || !senha_nova_conf) {
+    alert('Preencha todos os campos da alteração de senha.'); return;
+  }
+  const r = await fetch('/api/mesario/alterar_senha', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({senha_atual, senha_nova, senha_nova_conf})
+  }).then(r => r.json());
+  if (!r.ok) { alert(r.msg); beepErr(); return; }
+  beepOK();
+  alert('Senha alterada com sucesso!');
+  document.getElementById('inp-sn-atual').value = '';
+  document.getElementById('inp-sn-nova').value = '';
+  document.getElementById('inp-sn-conf').value = '';
+}
+
+// ═══════════════════════════════════════════
+// TROCA DE SENHA OBRIGATÓRIA (primeiro login)
+// ═══════════════════════════════════════════
+function irParaTrocaSenhaObrigatoria() {
+  mostrarTela('tela-troca-senha-obrig');
+  document.getElementById('inp-to-atual').value = '';
+  document.getElementById('inp-to-nova').value = '';
+  document.getElementById('inp-to-conf').value = '';
+  document.getElementById('msg-to').style.display = 'none';
+  setTimeout(() => document.getElementById('inp-to-atual').focus(), 100);
+}
+
+async function salvarTrocaSenhaObrigatoria() {
+  const senha_atual = document.getElementById('inp-to-atual').value;
+  const senha_nova = document.getElementById('inp-to-nova').value;
+  const senha_nova_conf = document.getElementById('inp-to-conf').value;
+  const mEl = document.getElementById('msg-to');
+  mEl.style.display = 'none';
+  if (!senha_atual || !senha_nova || !senha_nova_conf) {
+    mEl.textContent = 'Preencha todos os campos.'; mEl.style.display = 'block';
+    beepErr(); return;
+  }
+  const r = await fetch('/api/mesario/alterar_senha', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({senha_atual, senha_nova, senha_nova_conf})
+  }).then(r => r.json());
+  if (!r.ok) {
+    mEl.textContent = r.msg || 'Erro ao alterar senha.';
+    mEl.style.display = 'block';
+    beepErr(); return;
+  }
+  beepOK();
+  showOverlay('✓', 'SENHA ATUALIZADA');
+  setTimeout(() => { hideOverlay(); abrirPainelMesario(); }, 1400);
+}
+
+async function cancelarTrocaSenhaObrigatoria() {
+  if (!confirm('A troca de senha é obrigatória no primeiro acesso. Deseja sair sem alterar?')) return;
+  await mesarioLogout();
+}
+
+// ═══════════════════════════════════════════
+// REDEFINIR SENHA (admin redefinindo de outro)
+// ═══════════════════════════════════════════
+let redefUsuarioAlvo = null;
+
+function abrirModalRedefSenha(usuario, nome) {
+  redefUsuarioAlvo = usuario;
+  document.getElementById('redef-alvo-nome').textContent = nome;
+  document.getElementById('inp-redef-nova').value = '';
+  document.getElementById('inp-redef-conf').value = '';
+  document.getElementById('msg-redef').style.display = 'none';
+  document.getElementById('modal-redef-senha').classList.add('show');
+  setTimeout(() => document.getElementById('inp-redef-nova').focus(), 100);
+}
+
+function fecharModalRedefSenha() {
+  document.getElementById('modal-redef-senha').classList.remove('show');
+  redefUsuarioAlvo = null;
+}
+
+async function confirmarRedefSenha() {
+  if (!redefUsuarioAlvo) return;
+  const senha_nova = document.getElementById('inp-redef-nova').value;
+  const senha_nova_conf = document.getElementById('inp-redef-conf').value;
+  const mEl = document.getElementById('msg-redef');
+  mEl.style.display = 'none';
+  if (!senha_nova || !senha_nova_conf) {
+    mEl.textContent = 'Preencha ambos os campos.'; mEl.style.display = 'block';
+    beepErr(); return;
+  }
+  const r = await fetch('/api/mesario/alterar_senha', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({usuario: redefUsuarioAlvo, senha_nova, senha_nova_conf})
+  }).then(r => r.json());
+  if (!r.ok) {
+    mEl.textContent = r.msg || 'Erro ao redefinir.'; mEl.style.display = 'block';
+    beepErr(); return;
+  }
+  beepOK();
+  fecharModalRedefSenha();
+  alert('Senha redefinida com sucesso! O usuário deverá trocá-la no próximo login.');
+  // Note: backend sets senha_temporaria=False on alterar_senha, but we want to force another change.
+  // We'll rely on backend behavior; if needed, we'd add a dedicated reset endpoint.
+  await carregarMesarios();
+}
+
+// ═══════════════════════════════════════════
+// CRIAR ELEIÇÃO
+// ═══════════════════════════════════════════
+async function criarEleicao() {
+  const titulo = document.getElementById('inp-titulo').value.trim();
+  if (!titulo) { alert('Informe o título da eleição.'); return; }
+  const planilha = document.getElementById('inp-planilha').files[0];
+  if (!planilha) { alert('Anexe a planilha de funcionários (CSV ou XLSX).'); return; }
+  const formData = new FormData();
+  formData.append('titulo', titulo);
+  formData.append('planilha', planilha);
+  const r = await fetch('/api/eleicoes/criar', { method: 'POST', body: formData }).then(r => r.json());
+  if (r.ok) {
+    document.getElementById('inp-titulo').value = '';
+    document.getElementById('inp-planilha').value = '';
+    beepOK();
+    alert(`Eleição criada!\n${r.total_funcionarios} funcionário(s) cadastrado(s).`);
+    await abrirPainelMesario();
+  } else { alert(r.msg); }
+}
+
+async function abrirCfg(id, titulo) {
+  eAtual = id;
+  document.getElementById('eleicao-badge').textContent = titulo;
+  mostrarTela('tela-configurar');
+  const st = await fetch(`/api/eleicoes/${id}/status`).then(r => r.json());
+  const mEl = document.getElementById('msg-cfg');
+  const sC = document.getElementById('sec-cands');
+  const sA = document.getElementById('sec-acoes');
+  const btnOcultar = document.getElementById('btn-ocultar');
+  const btnExibir = document.getElementById('btn-exibir');
+  const btnEncerrar = document.getElementById('btn-encerrar');
+
+  // Toggle ocultar/exibir
+  if (st.oculta) {
+    btnOcultar.style.display = 'none';
+    btnExibir.style.display = 'block';
+  } else {
+    btnOcultar.style.display = 'block';
+    btnExibir.style.display = 'none';
+  }
+
+  let info = '';
+  if (st.oculta) info += ' · 👁 OCULTA';
+  if (st.eleicao_encerrada) {
+    mEl.innerHTML = `🔒 <strong>${titulo}</strong> — encerrada${info} · ${st.total_votos} voto(s) · ${st.total_funcionarios} funcionário(s).`;
+    mEl.className = 'msg';
+    sC.style.display='none'; sA.style.display='block';
+    btnEncerrar.style.display = 'none';
+  } else if (st.eleicao_aberta) {
+    mEl.innerHTML = `✅ <strong>${titulo}</strong> — em andamento${info} · ${st.total_votos} voto(s) · ${st.total_funcionarios} funcionário(s).`;
+    mEl.className = 'msg ok';
+    sC.style.display='none'; sA.style.display='block';
+    btnEncerrar.style.display = 'block';
+  } else {
+    mEl.innerHTML = `⚙ <strong>${titulo}</strong> — configure os candidatos para iniciar. ${st.total_funcionarios} funcionário(s).`;
+    mEl.className = 'msg';
+    sC.style.display='block'; sA.style.display='none';
+  }
+}
+
+function gerarFormCands() {
+  const qtd = parseInt(document.getElementById('qtd-cands').value) || 0;
+  const div = document.getElementById('form-cands');
+  div.innerHTML = '';
+  for (let i = 1; i <= Math.min(qtd, 20); i++) {
+    div.innerHTML += `<div class="cform"><h5>CANDIDATO ${i}</h5>
+      <div class="lbc">Nome</div>
+      <input type="text" class="inp sm" id="cn-${i}" placeholder="Nome completo">
+      <div class="frow">
+        <div><div class="lbc">Nº urna</div>
+          <input type="number" class="inp sm inp-nr" id="nn-${i}" placeholder="${10+i-1}" min="1" max="99"></div>
+        <div style="flex:1">
+          <div class="lbc">Foto do candidato</div>
+          <img class="foto-preview" id="fp-${i}" alt="">
+          <input type="file" accept="image/*" id="nf-${i}" onchange="previewFoto(${i})" style="font-size:.78rem;">
+        </div>
+      </div></div>`;
+  }
+}
+
+function previewFoto(i) {
+  const input = document.getElementById(`nf-${i}`);
+  const img = document.getElementById(`fp-${i}`);
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) { img.src = e.target.result; img.classList.add('show'); };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function iniciarEleicao() {
+  const qtd = parseInt(document.getElementById('qtd-cands').value) || 0;
+  if (qtd < 1) { beepErr(); return; }
+  const cands = [];
+  const formData = new FormData();
+  for (let i = 1; i <= qtd; i++) {
+    const nome  = (document.getElementById(`cn-${i}`)?.value || '').trim();
+    const num   = parseInt(document.getElementById(`nn-${i}`)?.value || '');
+    if (!nome || !num) { alert(`Preencha o candidato ${i}.`); beepErr(); return; }
+    cands.push({nome, numero: num});
+    const photoInput = document.getElementById(`nf-${i}`);
+    if (photoInput && photoInput.files[0]) {
+      formData.append(`foto_${i-1}`, photoInput.files[0]);
+    }
+  }
+  formData.append('candidatos', JSON.stringify(cands));
+  const r = await fetch(`/api/eleicoes/${eAtual}/configurar`, { method: 'POST', body: formData }).then(r => r.json());
+  if (r.ok) {
+    beepOK();
+    await imprimirZeresima();
+    showOverlay('✓','ELEIÇÃO INICIADA');
+    setTimeout(() => { hideOverlay(); abrirPainelMesario(); }, 1500);
+  } else { alert(r.msg); beepErr(); }
+}
+
+async function encerrarEleicao() {
+  if (!confirm('Encerrar a eleição? Esta ação não pode ser desfeita.')) return;
+  const r = await fetch(`/api/eleicoes/${eAtual}/encerrar`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})
+  }).then(r => r.json());
+  if (r.ok) { beepOK(); showOverlay('🔒','ELEIÇÃO ENCERRADA'); setTimeout(()=>{hideOverlay();verResultado();},1500); }
+  else { alert(r.msg); }
+}
+
+async function ocultarEleicao() {
+  if (!confirm('Ocultar esta eleição da tela inicial?\n\n• A eleição continuará acessível pelo painel do mesário.\n• Os CPFs dos eleitores serão LIBERADOS e poderão votar em outras eleições.')) return;
+  const r = await fetch(`/api/eleicoes/${eAtual}/ocultar`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})
+  }).then(r => r.json());
+  if (r.ok) { beepOK(); showOverlay('👁','ELEIÇÃO OCULTADA'); setTimeout(()=>{hideOverlay();abrirPainelMesario();},1200); }
+  else { alert(r.msg); }
+}
+
+async function exibirEleicao() {
+  const r = await fetch(`/api/eleicoes/${eAtual}/exibir`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})
+  }).then(r => r.json());
+  if (r.ok) { beepOK(); showOverlay('👁','ELEIÇÃO EXIBIDA'); setTimeout(()=>{hideOverlay();abrirPainelMesario();},1200); }
+  else { alert(r.msg); }
+}
+
+// ═══════════════════════════════════════════
+// ZERÉSIMA
+// ═══════════════════════════════════════════
+async function imprimirZeresima() {
+  const r = await fetch(`/api/eleicoes/${eAtual}/zeresima`).then(r => r.json());
+  if (!r.ok) { alert('Erro ao gerar zerésima.'); return; }
+  document.getElementById('zer-titulo').textContent = r.titulo;
+  document.getElementById('zer-hora').textContent = r.gerada_em;
+  const tb = document.getElementById('zer-tbody');
+  tb.innerHTML = '';
+  r.candidatos.forEach(c => {
+    tb.innerHTML += `<tr>
+      <td style="border:1px solid #000;padding:4px 8px;">${c.numero}</td>
+      <td style="border:1px solid #000;padding:4px 8px;">${c.nome}</td>
+      <td style="border:1px solid #000;padding:4px 8px;text-align:center;font-weight:700;">0</td>
+    </tr>`;
+  });
+  document.getElementById('zer-print').classList.add('printing');
+  document.getElementById('res-print').classList.remove('printing');
+  document.getElementById('part-print').classList.remove('printing');
+  window.print();
+  document.getElementById('zer-print').classList.remove('printing');
+}
+
+// ═══════════════════════════════════════════
+// RESULTADO (mesário)
+// ═══════════════════════════════════════════
+async function verResultado() {
+  mostrarTela('tela-resultado');
+  const r = await fetch(`/api/eleicoes/${eAtual}/resultado`).then(r => r.json());
+  renderDashboard(r, 'res-wrap');
+}
+
+// PÚBLICO: só para ver eleição encerrada, SEM acesso ao painel do mesário
+async function verResultadoPublico(id, titulo) {
+  // IMPORTANT: do NOT assign to eAtual here — that's for mesário context only.
+  // We use a local variable so the back button always returns to the public list.
+  if (titulo) document.getElementById('eleicao-badge').textContent = titulo;
+  mostrarTela('tela-resultado-publico');
+  const r = await fetch(`/api/eleicoes/${id}/resultado`).then(r => r.json());
+  renderDashboard(r, 'res-pub-wrap');
+}
+
+function renderDashboard(res, wrapId) {
+  const div = document.getElementById(wrapId);
+  if (!res.ok || !res.candidatos.length) {
+    div.innerHTML = '<div class="msg">Nenhum resultado disponível.</div>'; return;
+  }
+  const total = res.total_votos || 0;
+  const totalFunc = res.total_funcionarios || 0;
+  const estado = res.eleicao_encerrada ? 'RESULTADO FINAL' : 'APURAÇÃO PARCIAL';
+  const participacao = totalFunc > 0 ? Math.round((total / totalFunc) * 100) : 0;
+  const abstencao = totalFunc > 0 ? totalFunc - total : 0;
+
+  let h = '';
+  h += `<div class="msg" style="margin-bottom:10px;text-align:center;">
+    <strong>${res.titulo}</strong><br>
+    <span style="font-size:.75rem;color:#666;">${estado}</span>
+  </div>`;
+  h += `<div class="dash-cards">
+    <div class="dash-card"><div class="dc-val">${total}</div><div class="dc-lbl">Total Votos</div></div>
+    <div class="dash-card"><div class="dc-val">${totalFunc}</div><div class="dc-lbl">Funcionários</div></div>
+    <div class="dash-card"><div class="dc-val">${participacao}%</div><div class="dc-lbl">Participação</div></div>
+  </div>`;
+  const canvasBarId = `chartBar_${wrapId}`;
+  const canvasPieId = `chartPie_${wrapId}`;
+  h += `<div class="chart-wrap"><div class="chart-title">Votos por candidato</div><canvas id="${canvasBarId}"></canvas></div>`;
+  h += `<div class="chart-wrap"><div class="chart-title">Distribuição de votos</div><canvas id="${canvasPieId}"></canvas></div>`;
+  h += `<div style="margin-top:10px;">`;
+  res.candidatos.forEach((c, i) => {
+    const pct = total > 0 ? Math.round((c.votos / total) * 100) : 0;
+    const fotoHtml = c.foto ? `<img class="cr-foto" src="${c.foto}" alt="">` : '';
+    h += `<div class="cr ${i === 0 ? 'p1' : ''}">
+      <div class="pos">${i + 1}</div>
+      ${fotoHtml}
+      <div class="inf"><div class="nr">${c.nome}</div>
+        <div class="sr">Nº ${c.numero}</div>
+        <div class="barra"><div class="bf" style="width:${pct}%"></div></div></div>
+      <div class="vr">${c.votos}<br><span style="font-size:.58rem;color:#aaa;">${pct}%</span></div>
+    </div>`;
+  });
+  if (res.votos_brancos > 0) {
+    const pct = total > 0 ? Math.round((res.votos_brancos / total) * 100) : 0;
+    h += `<div class="cr"><div class="pos" style="font-size:.9rem;">⬜</div>
+      <div class="inf"><div class="nr">Votos em Branco</div>
+        <div class="barra"><div class="bf" style="width:${pct}%;background:#bbb;"></div></div></div>
+      <div class="vr">${res.votos_brancos}<br><span style="font-size:.58rem;color:#aaa;">${pct}%</span></div></div>`;
+  }
+  if (abstencao > 0) {
+    h += `<div class="cr"><div class="pos" style="font-size:.7rem;color:#ccc;">—</div>
+      <div class="inf"><div class="nr" style="color:#999;">Abstenção</div>
+        <div class="sr">Funcionários que não votaram</div></div>
+      <div class="vr" style="color:#999;">${abstencao}</div></div>`;
+  }
+  h += `</div>`;
+  div.innerHTML = h;
+  setTimeout(() => renderCharts(res, canvasBarId, canvasPieId), 100);
+}
+
+function renderCharts(res, canvasBarId, canvasPieId) {
+  const colors = ['#003087','#1a7a3a','#c45000','#FFD700','#6B2D5B','#0077B6','#E76F51','#264653','#2A9D8F','#E9C46A'];
+  const labels = res.candidatos.map(c => c.nome.length > 15 ? c.nome.substring(0, 15) + '…' : c.nome);
+  const votos = res.candidatos.map(c => c.votos);
+  if (res.votos_brancos > 0) { labels.push('Branco'); votos.push(res.votos_brancos); }
+  const bgColors = labels.map((_, i) => colors[i % colors.length]);
+
+  if (chartBarInstance) { chartBarInstance.destroy(); chartBarInstance = null; }
+  if (chartPieInstance) { chartPieInstance.destroy(); chartPieInstance = null; }
+
+  const ctxBar = document.getElementById(canvasBarId);
+  if (ctxBar) {
+    chartBarInstance = new Chart(ctxBar, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Votos', data: votos, backgroundColor: bgColors, borderRadius: 4, maxBarThickness: 40 }] },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+  }
+  const ctxPie = document.getElementById(canvasPieId);
+  if (ctxPie) {
+    chartPieInstance = new Chart(ctxPie, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data: votos, backgroundColor: bgColors, borderWidth: 2, borderColor: '#fff' }] },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } } } }
+    });
+  }
+}
+
+async function imprimirResultado() {
+  const res = await fetch(`/api/eleicoes/${eAtual}/resultado`).then(r => r.json());
+  if (!res.ok) { alert('Erro ao carregar resultado.'); return; }
+  const total = res.total_votos || 0;
+  const estado = res.eleicao_encerrada ? 'RESULTADO FINAL' : 'APURAÇÃO PARCIAL';
+  document.getElementById('res-print-titulo').textContent = res.titulo;
+  document.getElementById('res-print-info').textContent =
+    `${estado} · Total de votos: ${total} · Funcionários: ${res.total_funcionarios} · ${res.encerrada_em || res.criada_em}`;
+  const tb = document.getElementById('res-print-tbody');
+  tb.innerHTML = '';
+  res.candidatos.forEach((c, i) => {
+    const pct = total > 0 ? Math.round((c.votos / total) * 100) : 0;
+    tb.innerHTML += `<tr>
+      <td style="border:1px solid #000;padding:4px 8px;text-align:center;font-weight:700;">${i + 1}º</td>
+      <td style="border:1px solid #000;padding:4px 8px;">${c.nome}</td>
+      <td style="border:1px solid #000;padding:4px 8px;text-align:center;">${c.numero}</td>
+      <td style="border:1px solid #000;padding:4px 8px;text-align:center;font-weight:700;">${c.votos}</td>
+      <td style="border:1px solid #000;padding:4px 8px;text-align:center;">${pct}%</td>
+    </tr>`;
+  });
+  if (res.votos_brancos > 0) {
+    const pct = total > 0 ? Math.round((res.votos_brancos / total) * 100) : 0;
+    tb.innerHTML += `<tr>
+      <td style="border:1px solid #000;padding:4px 8px;text-align:center;">—</td>
+      <td style="border:1px solid #000;padding:4px 8px;">Votos em Branco</td>
+      <td style="border:1px solid #000;padding:4px 8px;text-align:center;">—</td>
+      <td style="border:1px solid #000;padding:4px 8px;text-align:center;font-weight:700;">${res.votos_brancos}</td>
+      <td style="border:1px solid #000;padding:4px 8px;text-align:center;">${pct}%</td>
+    </tr>`;
+  }
+  const participacao = res.total_funcionarios > 0 ? Math.round((total / res.total_funcionarios) * 100) : 0;
+  document.getElementById('res-print-footer').innerHTML =
+    `<strong>Participação:</strong> ${participacao}% (${total} de ${res.total_funcionarios} funcionários)<br><br>
+    Assinatura do Mesário: ___________________________________ &nbsp;&nbsp; Data: ___/___/______<br><br>
+    Assinatura do Presidente da Comissão: ___________________________________`;
+  document.getElementById('res-print').classList.add('printing');
+  document.getElementById('zer-print').classList.remove('printing');
+  document.getElementById('part-print').classList.remove('printing');
+  window.print();
+  document.getElementById('res-print').classList.remove('printing');
+}
+
+// ═══════════════════════════════════════════
+// RELATÓRIO PARTICIPAÇÃO
+// ═══════════════════════════════════════════
+async function verRelatorioParticipacao() {
+  mostrarTela('tela-participacao');
+  const r = await fetch(`/api/eleicoes/${eAtual}/relatorio_participacao`).then(r => r.json());
+  renderRelatorioParticipacao(r);
+}
+
+function renderRelatorioParticipacao(res) {
+  const div = document.getElementById('part-wrap');
+  if (!res.ok) { div.innerHTML = '<div class="msg err">Erro ao carregar relatório.</div>'; return; }
+  const pct = res.total_funcionarios > 0 ? Math.round((res.total_votaram / res.total_funcionarios) * 100) : 0;
+  let h = '';
+  h += `<div class="msg" style="margin-bottom:10px;text-align:center;">
+    <strong>${res.titulo}</strong><br>
+    <span style="font-size:.75rem;color:#666;">Relatório de Participação</span>
+  </div>`;
+  h += `<div class="dash-cards">
+    <div class="dash-card"><div class="dc-val">${res.total_votaram}</div><div class="dc-lbl">Votaram</div></div>
+    <div class="dash-card"><div class="dc-val">${res.total_nao_votaram}</div><div class="dc-lbl">Não votaram</div></div>
+    <div class="dash-card"><div class="dc-val">${pct}%</div><div class="dc-lbl">Participação</div></div>
+  </div>`;
+  h += `<div class="rel-section">
+    <div class="rel-section-title voted">✅ Votaram (${res.total_votaram})</div>
+    <div class="rel-list">`;
+  if (res.votaram.length === 0) {
+    h += `<div class="rel-row" style="color:#999;justify-content:center;">Nenhum funcionário votou ainda.</div>`;
+  } else {
+    res.votaram.forEach(f => {
+      h += `<div class="rel-row"><span class="rel-nome">${f.nome}</span><span class="rel-cpf">${f.cpf_masked}</span></div>`;
+    });
+  }
+  h += `</div></div>`;
+  h += `<div class="rel-section">
+    <div class="rel-section-title absent">❌ Não votaram (${res.total_nao_votaram})</div>
+    <div class="rel-list">`;
+  if (res.nao_votaram.length === 0) {
+    h += `<div class="rel-row" style="color:#999;justify-content:center;">Todos os funcionários votaram!</div>`;
+  } else {
+    res.nao_votaram.forEach(f => {
+      h += `<div class="rel-row"><span class="rel-nome">${f.nome}</span><span class="rel-cpf">${f.cpf_masked}</span></div>`;
+    });
+  }
+  h += `</div></div>`;
+  div.innerHTML = h;
+}
+
+async function imprimirRelatorioParticipacao() {
+  const res = await fetch(`/api/eleicoes/${eAtual}/relatorio_participacao`).then(r => r.json());
+  if (!res.ok) { alert('Erro ao carregar relatório.'); return; }
+  const pct = res.total_funcionarios > 0 ? Math.round((res.total_votaram / res.total_funcionarios) * 100) : 0;
+  document.getElementById('part-print-titulo').textContent = res.titulo;
+  document.getElementById('part-print-info').textContent =
+    `Participação: ${pct}% · Votaram: ${res.total_votaram} · Não votaram: ${res.total_nao_votaram} · Total: ${res.total_funcionarios} · ${res.encerrada_em || res.criada_em}`;
+  const tbV = document.getElementById('part-print-votaram');
+  tbV.innerHTML = '';
+  if (res.votaram.length === 0) {
+    tbV.innerHTML = '<tr><td colspan="3" style="border:1px solid #000;padding:6px;text-align:center;color:#666;">Nenhum funcionário votou.</td></tr>';
+  } else {
+    res.votaram.forEach((f, i) => {
+      tbV.innerHTML += `<tr>
+        <td style="border:1px solid #000;padding:3px 8px;text-align:center;">${i + 1}</td>
+        <td style="border:1px solid #000;padding:3px 8px;">${f.nome}</td>
+        <td style="border:1px solid #000;padding:3px 8px;text-align:center;">${f.cpf_masked}</td>
+      </tr>`;
+    });
+  }
+  const tbN = document.getElementById('part-print-nao-votaram');
+  tbN.innerHTML = '';
+  if (res.nao_votaram.length === 0) {
+    tbN.innerHTML = '<tr><td colspan="3" style="border:1px solid #000;padding:6px;text-align:center;color:#666;">Todos votaram!</td></tr>';
+  } else {
+    res.nao_votaram.forEach((f, i) => {
+      tbN.innerHTML += `<tr>
+        <td style="border:1px solid #000;padding:3px 8px;text-align:center;">${i + 1}</td>
+        <td style="border:1px solid #000;padding:3px 8px;">${f.nome}</td>
+        <td style="border:1px solid #000;padding:3px 8px;text-align:center;">${f.cpf_masked}</td>
+      </tr>`;
+    });
+  }
+  document.getElementById('part-print-footer').innerHTML =
+    `<strong>Participação:</strong> ${pct}% (${res.total_votaram} de ${res.total_funcionarios} funcionários)<br><br>
+    Assinatura do Mesário: ___________________________________ &nbsp;&nbsp; Data: ___/___/______<br><br>
+    Assinatura do Presidente da Comissão: ___________________________________`;
+  document.getElementById('zer-print').classList.remove('printing');
+  document.getElementById('res-print').classList.remove('printing');
+  document.getElementById('part-print').classList.add('printing');
+  window.print();
+  document.getElementById('part-print').classList.remove('printing');
+}
+
+// ═══════════════════════════════════════════
+// LOG
+// ═══════════════════════════════════════════
+async function verLog() {
+  mostrarTela('tela-log');
+  const r = await fetch(`/api/eleicoes/${eAtual}/log`).then(r => r.json());
+  const div = document.getElementById('log-wrap');
+  if (!r.ok || !r.log.length) { div.innerHTML = '<div class="msg">Nenhum registro no log.</div>'; return; }
+  div.innerHTML = '';
+  [...r.log].reverse().forEach(l => {
+    const row = document.createElement('div');
+    row.className = 'lr';
+    const mesario = l.mesario ? `<span class="lmes">👤 ${l.mesario}</span>` : '';
+    const cpf = l.cpf ? ` · ${l.cpf}` : '';
+    row.innerHTML = `<span class="lh">${l.hora}</span>${mesario}<span>${l.evento}${cpf}</span>`;
+    div.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════
+// HISTÓRICO DE ELEIÇÕES
+// ═══════════════════════════════════════════
+async function verHistoricoEleicoes() {
+  mostrarTela('tela-historico');
+  const r = await fetch('/api/historico').then(r => r.json()).catch(() => ({ok:false}));
+  const wrap = document.getElementById('hist-wrap');
+  if (!r.ok) {
+    wrap.innerHTML = '<div class="msg err">Erro ao carregar histórico.</div>';
+    return;
+  }
+  if (!r.itens || !r.itens.length) {
+    wrap.innerHTML = '<div class="msg">Nenhuma eleição registrada no histórico.</div>';
+    return;
+  }
+  // Summary cards
+  const totalAtivas = r.itens.filter(i => !i.excluida && i.estado === 'Em andamento').length;
+  const totalEncerradas = r.itens.filter(i => !i.excluida && i.estado === 'Encerrada').length;
+  const totalExcluidas = r.itens.filter(i => i.excluida).length;
+  let h = `<div class="dash-cards">
+    <div class="dash-card"><div class="dc-val">${totalAtivas}</div><div class="dc-lbl">Em andamento</div></div>
+    <div class="dash-card"><div class="dc-val">${totalEncerradas}</div><div class="dc-lbl">Encerradas</div></div>
+    <div class="dash-card"><div class="dc-val">${totalExcluidas}</div><div class="dc-lbl">Excluídas</div></div>
+  </div>`;
+
+  h += '<div style="max-height:380px;overflow-y:auto;">';
+  r.itens.forEach(item => {
+    let badgeCls = 'badge';
+    if (item.estado === 'Em andamento') badgeCls += ' badge-on';
+    else if (item.estado === 'Encerrada') badgeCls += ' badge-enc';
+    else if (item.estado === 'Excluída') badgeCls += ' badge-ocu';
+    const ocultaTxt = item.oculta ? ' · OCULTA' : '';
+    const cls = item.excluida ? 'hist-row excl' : 'hist-row';
+    let extra = '';
+    if (item.excluida) {
+      extra = `<div class="hist-extra">Excluída em ${item.excluida_em || '-'} por ${item.excluida_por || '-'}</div>`;
+    } else if (item.encerrada_em) {
+      extra = `<div class="hist-meta">Encerrada em ${item.encerrada_em}</div>`;
+    }
+    h += `<div class="${cls}">
+      <div class="hist-top">
+        <div class="hist-titulo">${item.titulo}</div>
+        <span class="${badgeCls}">${item.estado}${ocultaTxt}</span>
+      </div>
+      <div class="hist-meta">Criada em ${item.criada_em || '-'} · ${item.total_votos} voto(s) · ${item.total_funcionarios} funcionário(s)</div>
+      ${extra}
+    </div>`;
+  });
+  h += '</div>';
+  wrap.innerHTML = h;
+}
+
+// ═══════════════════════════════════════════
+// EXCLUIR ELEIÇÃO (com senha)
+// ═══════════════════════════════════════════
+function abrirModalExcluir() {
+  document.getElementById('inp-excluir-senha').value = '';
+  document.getElementById('msg-excluir').style.display = 'none';
+  document.getElementById('modal-excluir').classList.add('show');
+  setTimeout(() => document.getElementById('inp-excluir-senha').focus(), 100);
+}
+
+function fecharModalExcluir() {
+  document.getElementById('modal-excluir').classList.remove('show');
+}
+
+async function confirmarExclusaoEleicao() {
+  const senha = document.getElementById('inp-excluir-senha').value;
+  const mEl = document.getElementById('msg-excluir');
+  mEl.style.display = 'none';
+  if (!senha) {
+    mEl.textContent = 'Digite sua senha.';
+    mEl.style.display = 'block';
+    beepErr(); return;
+  }
+  const r = await fetch(`/api/eleicoes/${eAtual}/excluir`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({senha})
+  }).then(r => r.json());
+  if (!r.ok) {
+    mEl.textContent = r.msg || 'Erro ao excluir.';
+    mEl.style.display = 'block';
+    beepErr(); return;
+  }
+  beepOK();
+  fecharModalExcluir();
+  showOverlay('🗑', 'ELEIÇÃO EXCLUÍDA');
+  setTimeout(() => { hideOverlay(); eAtual = null; abrirPainelMesario(); }, 1500);
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+(async function init() {
+  // Check if already logged in (session persisted)
+  const me = await fetch('/api/mesario/me').then(r => r.json()).catch(() => ({ok:false}));
+  if (me.ok) {
+    mesarioLogadoNome = me.nome;
+    updateMesarioPill(me.nome);
+  }
+  irParaLista();
+})();
+</script>
+</body>
+</html>
