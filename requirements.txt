@@ -1,3 +1,4 @@
 flask==3.1.1
 gunicorn==23.0.0
 openpyxl==3.1.5
+supabase==2.30.0

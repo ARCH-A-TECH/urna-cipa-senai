@@ -8,425 +8,784 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+/* ═══════════════════════════════════════════════════════
+   VOX — Sistema Eleitoral SENAI · Design System
+   ═══════════════════════════════════════════════════════ */
+
+:root{
+  --vox-green:#1B5E2C;
+  --vox-green-dk:#134220;
+  --vox-green-lt:#2A7D3D;
+  --vox-orange:#E55A1C;
+  --vox-orange-lt:#F77B3D;
+  --vox-blue:#1565C0;
+  --vox-yellow:#FFD600;
+  --vox-bg:#E5E7EB;
+  --vox-card:#FFFFFF;
+  --vox-soft:#F3F4F6;
+  --vox-border:#E0E0E0;
+  --vox-text:#1F2937;
+  --vox-text-mid:#6B7280;
+  --vox-text-light:#9CA3AF;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.05);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg:0 10px 40px rgba(0,0,0,.12);
+  --r-sm:8px;
+  --r-md:16px;
+  --r-lg:24px;
+  --r-xl:32px;
+}
+
 *{box-sizing:border-box;margin:0;padding:0}
 
 body{
-  font-family:'IBM Plex Sans',sans-serif;
-  background:#d0d0d0;
+  font-family:'Inter','IBM Plex Sans',sans-serif;
+  background:var(--vox-bg);
+  color:var(--vox-text);
   min-height:100vh;
-  display:flex;align-items:center;justify-content:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
 }
 
+/* ─── CONTAINER PRINCIPAL HORIZONTAL ─── */
 #urna{
-  width:100%;max-width:520px;
-  background:#fff;
-  border:1px solid #bbb;
-  border-radius:5px;
-  box-shadow:0 6px 40px #0003;
-  display:flex;flex-direction:column;
+  width:100%;
+  max-width:1340px;
+  background:var(--vox-card);
+  border-radius:var(--r-xl);
+  box-shadow:var(--shadow-lg);
+  display:flex;
+  flex-direction:column;
   overflow:hidden;
+  position:relative;
 }
 
-/* TOPO AZUL */
+/* ─── TOPO ─── */
 #topo{
-  background:#003087;
-  border-bottom:4px solid #FFD700;
-  padding:14px 18px;
-  display:flex;align-items:center;gap:12px;
+  background:var(--vox-green);
+  padding:14px 28px;
+  display:flex;align-items:center;gap:16px;
+  border-bottom:3px solid var(--vox-yellow);
 }
-#topo img.logo-senai{height:44px;object-fit:contain;border-radius:3px;}
-#topo-mid{flex:1;text-align:center;}
+#topo img.logo-senai{
+  height:40px;object-fit:contain;
+  border-radius:6px;background:#fff;padding:3px;
+}
+#topo-mid{flex:1;display:flex;align-items:center;gap:12px;}
 #topo-mid h1{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.75rem;font-weight:700;
-  letter-spacing:3px;text-transform:uppercase;color:#fff;
+  font-size:1rem;font-weight:800;
+  letter-spacing:1px;text-transform:uppercase;color:#fff;
 }
-#topo-mid p{font-size:.58rem;letter-spacing:2px;color:#aabbd4;text-transform:uppercase;margin-top:3px;}
+#topo-mid p{font-size:.7rem;letter-spacing:1px;color:#aabbd4;text-transform:uppercase;}
 #topo img.logo-cipa{
-  height:44px;width:44px;object-fit:contain;
-  border-radius:50%;background:#000;
+  height:40px;width:40px;object-fit:cover;
+  border-radius:50%;background:#fff;
+  border:2px solid #fff;
 }
 #eleicao-badge{
   font-family:'IBM Plex Mono',monospace;
-  font-size:.55rem;color:#aabbd4;letter-spacing:1px;
-  text-align:right;max-width:90px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:.65rem;color:rgba(255,255,255,.85);
+  letter-spacing:1px;background:rgba(0,0,0,.2);
+  padding:5px 12px;border-radius:20px;
+  max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 
-#conteudo{padding:18px 20px 14px;background:#fff;flex:1;}
+/* ─── CONTEÚDO ─── */
+#conteudo{
+  padding:34px 40px;
+  background:var(--vox-card);
+  flex:1;
+  min-height:560px;
+}
 
 .tela{display:none;}
 .tela.ativa{display:block;}
 
+/* Section title (subtle) */
 .ttela{
   font-family:'IBM Plex Mono',monospace;
-  font-size:.6rem;letter-spacing:3px;color:#999;
+  font-size:.62rem;letter-spacing:3px;color:var(--vox-text-light);
   text-transform:uppercase;
-  border-bottom:1px solid #e8e8e8;
-  padding-bottom:9px;margin-bottom:13px;
+  margin-bottom:18px;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--vox-border);
 }
 
+/* ─── MENSAGENS ─── */
 .msg{
-  background:#f7f7f7;border:1px solid #ddd;border-radius:4px;
-  padding:11px 13px;font-size:.86rem;line-height:1.55;
-  margin-bottom:12px;color:#222;
+  background:var(--vox-soft);
+  border:1px solid var(--vox-border);
+  border-radius:var(--r-sm);
+  padding:14px 18px;
+  font-size:.92rem;line-height:1.5;
+  margin-bottom:14px;color:var(--vox-text);
 }
-.msg.err{border-color:#f5c0c0;color:#8b1010;background:#fff5f5;}
-.msg.ok {border-color:#9ec9aa;background:#f2faf5;color:#174d27;}
+.msg.err{border-color:#fca5a5;color:#991b1b;background:#fef2f2;}
+.msg.ok {border-color:#86efac;color:#14532d;background:#f0fdf4;}
 
+/* ─── INPUTS ─── */
 .lbc{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.58rem;letter-spacing:2px;color:#999;
-  text-transform:uppercase;margin-bottom:5px;
+  font-size:.7rem;letter-spacing:1px;color:var(--vox-text-mid);
+  text-transform:uppercase;font-weight:600;
+  margin-bottom:6px;
 }
 .inp{
-  width:100%;background:#fff;border:1px solid #bbb;border-radius:4px;
-  color:#111;font-family:'IBM Plex Mono',monospace;
-  font-size:1.3rem;padding:10px 13px;letter-spacing:4px;
-  outline:none;margin-bottom:12px;transition:border-color .15s;
-}
-.inp:focus{border-color:#333;}
-.inp.sm{font-size:.9rem;letter-spacing:1px;}
-
-.file-input-wrap{margin-bottom:12px;}
-.file-input-wrap input[type="file"]{
-  font-family:'IBM Plex Sans',sans-serif;font-size:.82rem;
   width:100%;
+  background:#fff;
+  border:2px solid var(--vox-border);
+  border-radius:var(--r-sm);
+  color:var(--vox-text);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:1.2rem;
+  padding:12px 16px;
+  letter-spacing:3px;
+  outline:none;
+  margin-bottom:14px;
+  transition:border-color .15s, box-shadow .15s;
+}
+.inp:focus{border-color:var(--vox-green);box-shadow:0 0 0 3px rgba(27,94,44,.1);}
+.inp.sm{font-size:.95rem;letter-spacing:.5px;}
+
+.file-input-wrap{margin-bottom:14px;}
+.file-input-wrap input[type="file"]{
+  font-family:'Inter',sans-serif;font-size:.85rem;width:100%;
+  padding:10px;border:2px dashed var(--vox-border);border-radius:var(--r-sm);
 }
 .file-label{
-  display:block;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.55rem;letter-spacing:1px;color:#777;
-  margin-top:3px;
+  display:block;font-size:.7rem;color:var(--vox-text-light);
+  margin-top:4px;
 }
 
-/* ════════════════════════════════════════════════════ */
-/* ─── TELA VOTAÇÃO TSE STYLE ──────────────────────── */
-/* ════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════
+   TELA INICIAL (estilo Vox)
+   ═══════════════════════════════════════════════════ */
+.vox-home{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:24px;
+  min-height:520px;
+}
+.vox-home-left{
+  background:var(--vox-card);
+  border-radius:var(--r-lg);
+  padding:36px 50px;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;
+}
+.vox-logo-icon{
+  width:64px;height:64px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:14px;
+}
+.vox-title{
+  font-size:1.75rem;font-weight:800;color:var(--vox-green-dk);
+  letter-spacing:1px;text-align:center;margin-bottom:6px;
+}
+.vox-subtitle{
+  font-size:.85rem;letter-spacing:3px;color:var(--vox-text-mid);
+  text-align:center;text-transform:uppercase;
+  font-weight:500;margin-bottom:22px;
+}
+.vox-divider{
+  width:60%;height:2px;background:var(--vox-green-dk);
+  margin:0 auto 26px;border-radius:2px;
+}
+.vox-actions{
+  width:100%;display:flex;flex-direction:column;gap:14px;
+  max-width:380px;margin:0 auto;
+}
+.vox-btn{
+  width:100%;
+  padding:16px 24px;
+  border-radius:32px;
+  border:none;
+  font-family:'Inter',sans-serif;
+  font-size:.92rem;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:transform .1s, box-shadow .15s, filter .15s;
+}
+.vox-btn:active{transform:scale(.98);}
+.vox-btn-primary{background:var(--vox-green-dk);color:#fff;box-shadow:0 4px 14px rgba(27,94,44,.3);}
+.vox-btn-primary:hover{filter:brightness(1.08);}
+.vox-btn-outline{background:#fff;color:var(--vox-green-dk);border:2px solid var(--vox-green-dk);}
+.vox-btn-outline:hover{background:var(--vox-green-dk);color:#fff;}
+.vox-btn-orange{background:#fff;color:var(--vox-orange);border:2px solid var(--vox-orange);}
+.vox-btn-orange:hover{background:var(--vox-orange);color:#fff;}
+.vox-foot{
+  font-size:.72rem;color:var(--vox-text-light);
+  text-align:center;margin-top:26px;letter-spacing:.5px;
+}
 
-#tela-votacao-tse{padding:0 !important;}
-.tse-wrap{
-  background:#f5f0e8;
-  padding:24px 20px 20px;
-  border-bottom:1px solid #e4dece;
-  min-height:360px;
+/* Right panel (candidate list / elections list) */
+.vox-home-right{
+  background:var(--vox-soft);
+  border-radius:var(--r-lg);
+  padding:28px 26px;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.vox-right-title{
+  font-size:1.05rem;font-weight:800;
+  color:var(--vox-green-dk);
+  margin-bottom:18px;
+  display:flex;align-items:center;gap:8px;
+}
+.vox-right-list{
+  flex:1;overflow-y:auto;
+  display:flex;flex-direction:column;gap:10px;
+  padding-right:6px;
+}
+/* Item card on right */
+.vox-cand-card{
+  background:#fff;
+  border-radius:var(--r-md);
+  padding:14px 18px;
+  display:flex;align-items:center;gap:16px;
+  cursor:pointer;
+  border:1px solid transparent;
+  transition:border-color .15s, transform .1s;
+}
+.vox-cand-card:hover{border-color:var(--vox-green);transform:translateX(2px);}
+.vox-cand-num{
+  font-size:1.5rem;font-weight:800;
+  color:var(--vox-green-dk);
+  min-width:48px;
+}
+.vox-cand-info{flex:1;}
+.vox-cand-name{font-size:.95rem;font-weight:700;color:var(--vox-text);}
+.vox-cand-meta{font-size:.72rem;color:var(--vox-text-light);text-transform:uppercase;letter-spacing:1px;}
+.vox-cand-badge{
+  font-size:.55rem;letter-spacing:1.5px;font-weight:700;
+  padding:4px 10px;border-radius:12px;text-transform:uppercase;
+  background:#dcfce7;color:#166534;
+}
+.vox-cand-badge.enc{background:#f3f4f6;color:#6b7280;}
+
+/* ═══════════════════════════════════════════════════
+   TELA CPF / FORMS
+   ═══════════════════════════════════════════════════ */
+.vox-form-wrap{
+  max-width:560px;margin:0 auto;padding:20px 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   TELA DE VOTAÇÃO (estilo TSE/Vox)
+   ═══════════════════════════════════════════════════ */
+#tela-votacao-tse{padding:0!important;}
+.tse-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  min-height:600px;
+  position:relative;
+}
+.tse-left{
+  background:var(--vox-soft);
+  padding:30px 40px;
   display:flex;flex-direction:column;
   position:relative;
 }
-.tse-header{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.58rem;letter-spacing:3px;color:#777;
-  text-transform:uppercase;text-align:right;
-  margin-bottom:18px;
-}
 .tse-seu-voto{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.65rem;letter-spacing:3px;color:#555;
-  text-transform:uppercase;margin-bottom:8px;
+  font-size:.85rem;color:var(--vox-text-mid);
+  letter-spacing:1.5px;text-transform:uppercase;
+  margin-bottom:4px;font-weight:600;
 }
-
-/* 4 large digit boxes */
+.tse-cargo{
+  font-size:1.4rem;font-weight:800;
+  color:var(--vox-blue);
+  margin-bottom:18px;
+  letter-spacing:1px;
+}
 .tse-digitos{
-  display:flex;gap:10px;margin-bottom:22px;
+  display:flex;gap:10px;margin-bottom:24px;
 }
 .tse-dig{
-  width:52px;height:68px;
-  background:#fff;
-  border:2px solid #333;
-  border-radius:3px;
+  width:48px;height:60px;
+  background:#fff;border:2px solid var(--vox-text);
+  border-radius:6px;
   font-family:'IBM Plex Mono',monospace;
-  font-size:2.4rem;font-weight:700;color:#111;
+  font-size:2rem;font-weight:700;color:#111;
   display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.05);
   position:relative;
-  box-shadow:inset 0 2px 4px rgba(0,0,0,.08);
 }
 .tse-dig.cursor::after{
-  content:'';position:absolute;bottom:10px;left:50%;
-  transform:translateX(-50%);width:22px;height:3px;background:#333;
+  content:'';position:absolute;bottom:8px;left:50%;
+  transform:translateX(-50%);width:18px;height:2px;background:#333;
   animation:piscar .8s step-start infinite;
 }
 @keyframes piscar{0%,100%{opacity:1}50%{opacity:0}}
 
-/* Candidate info area (hidden until number typed) */
-.tse-cand-area{
-  flex:1;
-  min-height:120px;
-  display:flex;flex-direction:column;
+.tse-cand-area{flex:1;position:relative;}
+.tse-cand-foto-area{
+  position:absolute;top:0;right:0;
+  width:140px;height:170px;
+  background:#d1d5db;
+  border-radius:4px;
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.tse-cand-foto-area img{width:100%;height:100%;object-fit:cover;}
+.tse-cand-foto-area.empty::after{
+  content:'';width:60%;height:60%;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E") no-repeat center/contain;
+  opacity:.5;
 }
 .tse-cand-nome-lbl{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.6rem;letter-spacing:3px;color:#555;
-  text-transform:uppercase;margin-bottom:6px;
+  font-size:.78rem;letter-spacing:1px;color:var(--vox-text-mid);
+  text-transform:uppercase;font-weight:600;margin-bottom:4px;
+  margin-top:14px;
 }
 .tse-cand-nome{
-  font-size:1.1rem;font-weight:700;color:#111;
-  margin-bottom:12px;
+  font-size:1.15rem;font-weight:800;color:var(--vox-text);
   min-height:1.5rem;
 }
-.tse-cand-foto{
-  width:100px;height:128px;
-  object-fit:cover;
-  border:1px solid #999;
-  background:#eee;
-  margin-top:8px;
-}
-.tse-cand-foto-placeholder{
-  width:100px;height:128px;
-  background:#e4dece;
-  border:1px dashed #b8b0a0;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.55rem;letter-spacing:2px;color:#999;
-  text-transform:uppercase;text-align:center;
-  margin-top:8px;
+
+.tse-bg-icon{
+  position:absolute;left:50%;top:55%;
+  transform:translate(-50%,-50%);
+  width:140px;height:140px;
+  opacity:.08;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E") no-repeat center/contain;
+  pointer-events:none;
 }
 
 .tse-instruct{
-  font-size:.8rem;color:#666;line-height:1.4;
-  padding:10px 0;
+  margin-top:auto;
+  padding-top:20px;
+  font-size:.8rem;color:var(--vox-text-mid);line-height:1.5;
 }
-.tse-instruct strong{color:#111;}
+.tse-instruct strong{color:var(--vox-text);}
 
-/* Discrete candidate reference strip */
-.tse-ref{
-  background:#ece6d5;
-  padding:8px 14px 10px;
-  border-top:1px solid #d8d0b8;
+/* Right panel (keypad) */
+.tse-right{
+  background:#1A1A1A;
+  padding:28px 32px;
+  display:flex;flex-direction:column;
 }
-.tse-ref-title{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.52rem;letter-spacing:2px;color:#888;
-  text-transform:uppercase;margin-bottom:5px;
-  text-align:center;
+.tse-right-title{
+  font-size:1.5rem;font-weight:800;
+  color:#fff;text-align:center;
+  letter-spacing:1px;
+  margin-bottom:24px;
 }
-.tse-ref-list{
-  display:flex;flex-wrap:wrap;gap:5px 10px;
-  justify-content:center;
-}
-.tse-ref-item{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.66rem;color:#555;
-  background:transparent;
-}
-.tse-ref-item b{
-  color:#111;font-weight:700;
-  margin-right:4px;
-}
-
-/* Bottom keypad area (green) */
-.tse-botoes{
-  background:#1d1d1d;
-  padding:16px 18px;
-  display:grid;
-  grid-template-columns:repeat(3,1fr) 110px;
-  gap:8px;
+.tse-keypad{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:14px;margin-bottom:18px;
 }
 .tcl{
-  background:#2a2a2a;
+  background:#0a0a0a;
   border:none;
   color:#fff;
-  font-family:'IBM Plex Sans',sans-serif;
+  font-family:'Inter',sans-serif;
   font-size:1.6rem;font-weight:700;
-  padding:14px 0;
-  border-radius:5px;
+  padding:18px 0;
+  border-radius:8px;
   cursor:pointer;
-  transition:background .1s,transform .08s;
+  transition:background .1s,transform .08s, box-shadow .1s;
   user-select:none;
-  position:relative;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1);
 }
-.tcl:hover{background:#3a3a3a;}
-.tcl:active{background:#000;transform:scale(.95);}
-.tcl .braille{
-  display:block;font-size:.4rem;color:#888;
-  letter-spacing:2px;margin-top:2px;
-  font-family:monospace;
-}
+.tcl:hover{background:#222;}
+.tcl:active{background:#000;transform:scale(.94);}
+.tcl-zero{grid-column:2;}
 
+.tse-encerrar{
+  text-align:center;font-size:.55rem;letter-spacing:2px;
+  color:#666;margin:8px 0 12px;text-transform:uppercase;
+  cursor:pointer;
+}
+.tse-encerrar:hover{color:#999;}
+
+.tse-acoes{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:10px;margin-top:auto;
+}
 .tcl-action{
-  display:flex;align-items:center;justify-content:center;
-  font-size:.9rem;letter-spacing:1px;font-weight:700;
+  font-size:.85rem;font-weight:700;letter-spacing:1px;
+  padding:18px 0;border-radius:8px;border:none;
+  cursor:pointer;transition:filter .12s, transform .08s;
   text-transform:uppercase;
 }
+.tcl-action:active{transform:scale(.96);}
 .tcl-branco{background:#fff;color:#111;}
 .tcl-branco:hover{background:#e8e8e8;}
-.tcl-corrige{background:#e88d30;color:#fff;}
-.tcl-corrige:hover{background:#c7761f;}
-.tcl-confirma{background:#1e9a3e;color:#fff;}
-.tcl-confirma:hover{background:#17812f;}
+.tcl-corrige{background:var(--vox-orange);color:#fff;}
+.tcl-corrige:hover{background:var(--vox-orange-lt);}
+.tcl-confirma{background:#1B9E3C;color:#fff;}
+.tcl-confirma:hover{filter:brightness(1.1);}
 
-/* Bottom voltar */
-.tse-voltar{
-  background:#f5f0e8;
-  padding:8px 18px 14px;
-  display:flex;justify-content:center;
+/* Voltar discreto */
+.tse-voltar-wrap{
+  position:absolute;top:14px;left:14px;z-index:10;
 }
 .btn-voltar-tse{
-  background:transparent;
-  border:1px solid #999;
-  color:#666;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.6rem;letter-spacing:2px;
-  padding:6px 18px;
-  border-radius:3px;cursor:pointer;
-  text-transform:uppercase;
+  background:rgba(255,255,255,.85);
+  border:1px solid var(--vox-border);
+  color:var(--vox-text-mid);
+  font-size:.65rem;letter-spacing:1px;
+  padding:6px 14px;border-radius:20px;cursor:pointer;
+  text-transform:uppercase;font-weight:600;
 }
-.btn-voltar-tse:hover{background:#eae3d1;color:#111;}
+.btn-voltar-tse:hover{background:#fff;color:var(--vox-text);}
 
-/* ─── BOTÕES GERAIS ─── */
-.bts{display:flex;gap:8px;margin-top:10px;}
+/* ─── TIRA DE CANDIDATOS PRESA AO LADO DIREITO ─── */
+.tse-side-ref{
+  position:absolute;
+  top:30px;
+  left:100%;
+  background:var(--vox-soft);
+  border-radius:0 var(--r-md) var(--r-md) 0;
+  padding:14px 16px;
+  width:140px;
+  box-shadow:var(--shadow-md);
+  border:1px solid var(--vox-border);
+  border-left:none;
+  z-index:5;
+}
+.tse-side-title{
+  font-size:.55rem;letter-spacing:2px;color:var(--vox-green-dk);
+  text-transform:uppercase;font-weight:700;
+  margin-bottom:10px;text-align:center;
+  padding-bottom:8px;border-bottom:1px solid var(--vox-border);
+}
+.tse-side-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;}
+.tse-side-item{
+  font-size:.72rem;color:var(--vox-text);
+  padding:6px 8px;background:#fff;border-radius:6px;
+}
+.tse-side-item b{
+  color:var(--vox-green-dk);font-weight:800;
+  font-size:.85rem;display:block;
+}
+
+/* ═══════════════════════════════════════════════════
+   BOTÕES PADRÃO (mesário, etc)
+   ═══════════════════════════════════════════════════ */
+.bts{display:flex;gap:10px;margin-top:14px;}
 .btn{
-  flex:1;border-radius:4px;cursor:pointer;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:.7rem;font-weight:700;letter-spacing:2px;
-  text-transform:uppercase;padding:13px 8px;
-  transition:filter .12s,transform .1s;border:none;
+  flex:1;border-radius:var(--r-sm);cursor:pointer;
+  font-family:'Inter',sans-serif;
+  font-size:.78rem;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;padding:14px 12px;
+  transition:filter .12s, transform .1s;border:none;
 }
 .btn:active{transform:scale(.97);}
-.btn-n {background:#e8e8e8;color:#555;border:1px solid #ccc;}
-.btn-n:hover{background:#ddd;}
-.btn-g {background:#1a7a3a;color:#fff;}
+.btn-n {background:var(--vox-soft);color:var(--vox-text);border:1px solid var(--vox-border);}
+.btn-n:hover{background:#e5e7eb;}
+.btn-g {background:var(--vox-green-dk);color:#fff;}
 .btn-g:hover{filter:brightness(1.1);}
-.btn-o {background:#c45000;color:#fff;}
-.btn-o:hover{filter:brightness(1.1);}
-.btn-r {background:#fff0f0;color:#cc2222;border:1px solid #f5c0c0;}
-.btn-r:hover{background:#ffe0e0;}
+.btn-o {background:var(--vox-orange);color:#fff;}
+.btn-o:hover{filter:brightness(1.05);}
+.btn-r {background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;}
+.btn-r:hover{background:#fee2e2;}
 
-#lista-wrap{max-height:380px;overflow-y:auto;margin-bottom:10px;}
+/* ─── CARDS DE LISTA ─── */
+#lista-wrap, .lista-cards{margin-bottom:14px;max-height:460px;overflow-y:auto;}
 .card{
-  background:#fafafa;border:1px solid #ddd;border-radius:4px;
-  padding:11px 13px;margin-bottom:7px;
-  cursor:pointer;transition:border-color .15s,background .15s;
-  display:flex;align-items:center;justify-content:space-between;
+  background:var(--vox-soft);
+  border-radius:var(--r-md);
+  padding:14px 18px;margin-bottom:8px;
+  cursor:pointer;
+  transition:transform .1s, box-shadow .15s;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1px solid transparent;
 }
-.card:hover{border-color:#888;background:#f0f0f0;}
-.card .ct{font-weight:600;font-size:.9rem;color:#111;}
-.card .cm{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:#999;margin-top:3px;}
+.card:hover{border-color:var(--vox-green);transform:translateX(2px);}
+.card .ct{font-weight:700;font-size:.95rem;color:var(--vox-text);}
+.card .cm{font-size:.72rem;color:var(--vox-text-light);margin-top:4px;}
 .badge{
-  font-family:'IBM Plex Mono',monospace;font-size:.52rem;
-  letter-spacing:1px;padding:3px 8px;border-radius:3px;
-  border:1px solid #ccc;color:#999;white-space:nowrap;flex-shrink:0;
+  font-size:.55rem;letter-spacing:1.5px;font-weight:700;
+  padding:4px 10px;border-radius:12px;
+  background:#f3f4f6;color:#6b7280;text-transform:uppercase;
 }
-.badge-on{border-color:#1a7a3a;color:#1a7a3a;background:#f2faf5;}
-.badge-enc{border-color:#999;color:#555;}
-.badge-ocu{border-color:#c45000;color:#c45000;background:#fff5ec;}
+.badge-on{background:#dcfce7;color:#166534;}
+.badge-enc{background:#f3f4f6;color:#6b7280;}
+.badge-ocu{background:#ffedd5;color:#9a3412;}
+
+/* ═══════════════════════════════════════════════════
+   DASHBOARD AUDITORIA (estilo imagem 3)
+   ═══════════════════════════════════════════════════ */
+.audit-grid{
+  display:grid;grid-template-columns:1fr 1.1fr;gap:24px;
+  align-items:start;
+}
+.audit-col-l{display:flex;flex-direction:column;gap:14px;}
+.audit-col-r{display:flex;flex-direction:column;gap:14px;}
+
+.audit-eleito-card{
+  background:var(--vox-green-dk);color:#fff;
+  border-radius:var(--r-md);
+  padding:18px 22px;
+  text-align:center;
+}
+.audit-eleito-card.suplente{background:var(--vox-green-lt);}
+.audit-eleito-tag{
+  font-size:.72rem;letter-spacing:2px;font-weight:700;
+  color:var(--vox-yellow);margin-bottom:6px;
+  text-transform:uppercase;
+}
+.audit-eleito-card.suplente .audit-eleito-tag{color:#fef9c3;}
+.audit-eleito-nome{
+  font-size:1.4rem;font-weight:800;letter-spacing:.5px;
+  margin-bottom:4px;
+}
+.audit-eleito-total{font-size:.85rem;opacity:.9;}
+
+.audit-rank-card{
+  background:#fff;
+  border:1px solid var(--vox-border);
+  border-radius:var(--r-md);
+  padding:18px 22px;
+}
+.audit-rank-title{
+  font-size:1.05rem;font-weight:700;color:var(--vox-green-dk);
+  text-align:center;margin-bottom:14px;
+}
+.audit-rank-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;}
+.audit-rank-row{
+  display:flex;align-items:center;gap:14px;
+  padding:10px 6px;border-bottom:1px solid #f3f4f6;
+}
+.audit-rank-row:last-child{border-bottom:none;}
+.audit-rank-pos{
+  font-size:.78rem;color:var(--vox-text-light);
+  min-width:24px;font-weight:700;
+}
+.audit-rank-tag{
+  font-size:.6rem;letter-spacing:.5px;font-weight:700;
+  padding:3px 9px;border-radius:10px;
+  text-transform:none;
+}
+.audit-rank-tag.elect{background:var(--vox-yellow);color:#7c4a00;}
+.audit-rank-tag.supl{background:#bbf7d0;color:#166534;}
+.audit-rank-name{flex:1;}
+.audit-rank-name .nm{font-weight:700;color:var(--vox-text);}
+.audit-rank-name .lt{font-size:.7rem;color:var(--vox-text-light);}
+.audit-rank-vt{font-weight:700;color:var(--vox-green-dk);}
+
+.audit-chart-card{
+  background:#fff;
+  border:1px solid var(--vox-border);
+  border-radius:var(--r-md);
+  padding:18px 22px;
+}
+.audit-chart-title{
+  font-size:1rem;font-weight:700;color:var(--vox-text);
+  text-align:center;margin-bottom:12px;
+}
+.audit-chart-wrap{position:relative;}
+.audit-chart-wrap canvas{max-height:280px;}
+
+.audit-log-card{
+  background:#f0fdf4;
+  border:1px solid #bbf7d0;
+  border-radius:var(--r-md);
+  padding:16px 22px;
+}
+.audit-log-title{
+  font-size:.92rem;font-weight:700;color:var(--vox-green-dk);
+  text-align:center;margin-bottom:10px;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.audit-log-list{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.72rem;color:#166534;
+  max-height:120px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:4px;
+}
+
+/* Header da auditoria */
+.audit-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;gap:16px;flex-wrap:wrap;
+}
+.audit-title-block{display:flex;align-items:center;gap:14px;}
+.audit-title-icon{
+  width:42px;height:42px;
+  background:var(--vox-green-dk);color:var(--vox-yellow);
+  border-radius:var(--r-sm);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;
+}
+.audit-title-text h2{
+  font-size:1.5rem;font-weight:800;color:var(--vox-green-dk);
+  letter-spacing:.5px;
+}
+.audit-title-text p{font-size:.78rem;color:var(--vox-text-mid);}
+.audit-export-buttons{display:flex;gap:10px;}
+.btn-export-pdf{
+  background:#dc2626;color:#fff;
+  font-size:.7rem;font-weight:700;letter-spacing:1px;
+  padding:11px 18px;border:none;border-radius:6px;cursor:pointer;
+  text-transform:uppercase;
+}
+.btn-export-pdf:hover{filter:brightness(1.05);}
+.btn-export-csv{
+  background:#16a34a;color:#fff;
+  font-size:.7rem;font-weight:700;letter-spacing:1px;
+  padding:11px 18px;border:none;border-radius:6px;cursor:pointer;
+  text-transform:uppercase;
+}
+.btn-export-csv:hover{filter:brightness(1.05);}
+
+/* DASH CARDS antiga compat */
+.dash-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.dash-card{
+  background:var(--vox-soft);
+  border-radius:var(--r-sm);
+  padding:14px;text-align:center;
+  border:1px solid var(--vox-border);
+}
+.dash-card .dc-val{font-size:1.6rem;font-weight:800;color:var(--vox-green-dk);}
+.dash-card .dc-lbl{font-size:.62rem;color:var(--vox-text-mid);margin-top:4px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;}
+
+/* Old chart-wrap compat */
+.chart-wrap{
+  margin:14px 0;background:#fff;border:1px solid var(--vox-border);
+  border-radius:var(--r-md);padding:16px;
+}
+.chart-wrap canvas{max-height:240px;}
+.chart-title{font-size:.72rem;letter-spacing:1.5px;color:var(--vox-text-mid);text-transform:uppercase;margin-bottom:8px;font-weight:600;}
 
 .cr{
-  background:#fafafa;border:1px solid #e0e0e0;border-radius:4px;
-  padding:10px 13px;margin-bottom:7px;
-  display:flex;align-items:center;gap:12px;
+  background:#fff;border:1px solid var(--vox-border);border-radius:var(--r-sm);
+  padding:12px 16px;margin-bottom:8px;
+  display:flex;align-items:center;gap:14px;
 }
-.cr .pos{font-family:'IBM Plex Mono',monospace;font-size:1.3rem;font-weight:700;color:#ccc;width:28px;text-align:center;}
-.cr.p1 .pos{color:#111;}
+.cr .pos{font-size:1.2rem;font-weight:800;color:var(--vox-text-light);width:30px;text-align:center;}
+.cr.p1 .pos{color:var(--vox-green-dk);}
 .cr .inf{flex:1;}
-.cr .nr{font-size:.92rem;font-weight:600;color:#111;}
-.cr .sr{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:#999;}
-.cr .vr{font-family:'IBM Plex Mono',monospace;font-size:1.2rem;font-weight:700;color:#111;text-align:right;}
-.barra{height:4px;background:#eee;border-radius:2px;margin-top:5px;overflow:hidden;}
-.bf{height:100%;background:#1a7a3a;border-radius:2px;transition:width .8s;}
-.cr-foto{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #ddd;flex-shrink:0;}
+.cr .nr{font-size:.95rem;font-weight:700;color:var(--vox-text);}
+.cr .sr{font-size:.7rem;color:var(--vox-text-light);text-transform:uppercase;letter-spacing:1px;}
+.cr .vr{font-size:1.15rem;font-weight:800;color:var(--vox-green-dk);text-align:right;}
+.barra{height:5px;background:#f3f4f6;border-radius:3px;margin-top:6px;overflow:hidden;}
+.bf{height:100%;background:var(--vox-green-dk);border-radius:3px;transition:width .8s;}
+.cr-foto{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--vox-border);flex-shrink:0;}
 
-.dash-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
-.dash-card{background:#f7f7f7;border:1px solid #ddd;border-radius:6px;padding:10px;text-align:center;}
-.dash-card .dc-val{font-family:'IBM Plex Mono',monospace;font-size:1.4rem;font-weight:700;color:#003087;}
-.dash-card .dc-lbl{font-size:.6rem;color:#888;margin-top:3px;text-transform:uppercase;letter-spacing:1px;}
-
-.chart-wrap{margin:14px 0;background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;padding:12px;}
-.chart-wrap canvas{max-height:220px;}
-.chart-title{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:2px;color:#999;text-transform:uppercase;margin-bottom:8px;}
-
-.log-scroll{max-height:280px;overflow-y:auto;}
+/* ═══════════════════════════════════════════════════
+   LOG / RELATÓRIOS / OUTROS
+   ═══════════════════════════════════════════════════ */
+.log-scroll{max-height:340px;overflow-y:auto;}
+.lr{font-family:'IBM Plex Mono',monospace;font-size:.72rem;padding:8px 0;border-bottom:1px solid var(--vox-border);color:var(--vox-text);display:flex;gap:12px;flex-wrap:wrap;}
+.lh{color:var(--vox-text-light);white-space:nowrap;flex-shrink:0;}
+.lmes{color:var(--vox-green-dk);font-weight:700;}
 
 .rel-section{margin-bottom:14px;}
-.rel-section-title{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:2px;color:#fff;text-transform:uppercase;padding:7px 12px;border-radius:4px 4px 0 0;}
-.rel-section-title.voted{background:#1a7a3a;}
-.rel-section-title.absent{background:#c45000;}
-.rel-list{max-height:200px;overflow-y:auto;border:1px solid #ddd;border-top:none;border-radius:0 0 4px 4px;}
-.rel-row{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;font-size:.82rem;border-bottom:1px solid #f0f0f0;}
+.rel-section-title{font-size:.7rem;letter-spacing:1.5px;color:#fff;text-transform:uppercase;padding:9px 14px;border-radius:var(--r-sm) var(--r-sm) 0 0;font-weight:700;}
+.rel-section-title.voted{background:var(--vox-green-dk);}
+.rel-section-title.absent{background:var(--vox-orange);}
+.rel-list{max-height:240px;overflow-y:auto;border:1px solid var(--vox-border);border-top:none;border-radius:0 0 var(--r-sm) var(--r-sm);background:#fff;}
+.rel-row{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;font-size:.85rem;border-bottom:1px solid #f3f4f6;}
 .rel-row:last-child{border-bottom:none;}
-.rel-row:nth-child(even){background:#f9f9f9;}
-.rel-nome{font-weight:600;color:#222;}
-.rel-cpf{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:#999;}
+.rel-row:nth-child(even){background:#fafafa;}
+.rel-nome{font-weight:600;color:var(--vox-text);}
+.rel-cpf{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--vox-text-light);}
 
-.lr{font-family:'IBM Plex Mono',monospace;font-size:.67rem;padding:6px 0;border-bottom:1px solid #eee;color:#444;display:flex;gap:10px;flex-wrap:wrap;}
-.lh{color:#999;white-space:nowrap;flex-shrink:0;}
-.lmes{color:#003087;font-weight:700;white-space:nowrap;}
-
-.cform{background:#f8f8f8;border:1px solid #ddd;border-radius:4px;padding:11px;margin-bottom:7px;}
-.cform h5{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:#999;letter-spacing:2px;margin-bottom:9px;}
-.frow{display:flex;gap:8px;align-items:flex-start;}
+.cform{
+  background:var(--vox-soft);border:1px solid var(--vox-border);
+  border-radius:var(--r-md);padding:14px;margin-bottom:10px;
+}
+.cform h5{font-size:.7rem;color:var(--vox-text-mid);letter-spacing:1.5px;margin-bottom:10px;font-weight:700;text-transform:uppercase;}
+.frow{display:flex;gap:10px;align-items:flex-start;}
 .frow .inp{margin-bottom:8px;}
-.inp-nr{width:80px;flex-shrink:0;}
+.inp-nr{width:90px;flex-shrink:0;}
 
-.foto-preview{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #ccc;margin-bottom:8px;display:none;}
+.foto-preview{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--vox-border);margin-bottom:8px;display:none;}
 .foto-preview.show{display:block;}
 
-.nome-funcionario{background:#e8f4ec;border:1px solid #9ec9aa;border-radius:4px;padding:10px 13px;margin-bottom:12px;font-size:.92rem;color:#174d27;text-align:center;}
-.nome-funcionario strong{display:block;font-size:1rem;margin-bottom:2px;}
+.nome-funcionario{
+  background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r-sm);
+  padding:14px 18px;margin-bottom:14px;font-size:1rem;color:#166534;text-align:center;
+}
+.nome-funcionario strong{display:block;font-size:1.1rem;margin-bottom:2px;}
 
 /* Mesários list */
-.mes-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#fafafa;border:1px solid #e0e0e0;border-radius:4px;margin-bottom:5px;}
+.mes-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff;border:1px solid var(--vox-border);border-radius:var(--r-sm);margin-bottom:6px;}
 .mes-row .mi{flex:1;}
-.mes-row .mn{font-weight:600;font-size:.88rem;color:#111;}
-.mes-row .mu{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:#888;}
-.mes-row .mdel{cursor:pointer;color:#c45000;font-size:1rem;padding:4px 8px;background:transparent;border:none;}
-.mes-row .mdel:hover{color:#8b1010;}
-.mes-admin-tag{background:#003087;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:.5rem;padding:2px 6px;border-radius:3px;letter-spacing:1px;margin-left:6px;}
-
-#zer-print{display:none;}
-#res-print{display:none;}
-#part-print{display:none;}
-
-@media print{
-  body>*{display:none!important;}
-  #zer-print, #res-print, #part-print{
-    font-family:'Courier New',monospace;
-    font-size:12px;padding:20px;color:#000;background:#fff;
-  }
-  #zer-print.printing{display:block!important;}
-  #res-print.printing{display:block!important;}
-  #part-print.printing{display:block!important;}
-}
-
-#overlay{display:none;position:fixed;inset:0;background:#000c;z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
-#overlay.show{display:flex;}
-#modal-excluir.show{display:flex!important;}
-#modal-redef-senha.show{display:flex!important;}
+.mes-row .mn{font-weight:700;font-size:.92rem;color:var(--vox-text);}
+.mes-row .mu{font-size:.7rem;color:var(--vox-text-light);}
+.mes-row .mdel{cursor:pointer;color:var(--vox-orange);font-size:1.05rem;padding:6px 10px;background:transparent;border:none;}
+.mes-row .mdel:hover{color:#9a3412;}
+.mes-admin-tag{background:var(--vox-green-dk);color:#fff;font-size:.55rem;padding:2px 7px;border-radius:8px;letter-spacing:1px;margin-left:6px;font-weight:700;}
 
 /* Histórico */
 .hist-row{
-  background:#fafafa;border:1px solid #e0e0e0;border-radius:4px;
-  padding:9px 12px;margin-bottom:6px;
-  display:flex;flex-direction:column;gap:3px;
+  background:var(--vox-soft);border:1px solid var(--vox-border);border-radius:var(--r-sm);
+  padding:11px 16px;margin-bottom:6px;
+  display:flex;flex-direction:column;gap:4px;
+  position:relative;
 }
-.hist-row.excl{background:#fff5f5;border-color:#f5c0c0;}
+.hist-row.hist-clickable{cursor:pointer;transition:border-color .15s, transform .1s, background .15s;}
+.hist-row.hist-clickable:hover{border-color:var(--vox-green-dk);background:#fff;transform:translateX(2px);}
+.hist-arrow{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  color:var(--vox-text-light);font-size:1.2rem;
+  opacity:0;transition:opacity .15s, color .15s;
+}
+.hist-row.hist-clickable:hover .hist-arrow{opacity:1;color:var(--vox-green-dk);}
+.hist-row.excl{background:#fef2f2;border-color:#fecaca;}
 .hist-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
-.hist-titulo{font-weight:600;font-size:.88rem;color:#111;flex:1;}
-.hist-meta{font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:#777;}
-.hist-extra{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:#8b1010;margin-top:2px;}
+.hist-titulo{font-weight:700;font-size:.92rem;color:var(--vox-text);flex:1;}
+.hist-meta{font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--vox-text-light);}
+.hist-extra{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:#dc2626;margin-top:3px;}
+
+/* Print */
+#zer-print, #res-print, #part-print, #prop-print{display:none;}
+@media print{
+  body>*{display:none!important;}
+  #zer-print, #res-print, #part-print, #prop-print{
+    font-family:'Inter','Courier New',sans-serif;
+    font-size:12px;padding:20px;color:#000;background:#fff;
+  }
+  #zer-print.printing, #res-print.printing, #part-print.printing, #prop-print.printing{display:block!important;}
+}
+
+/* Overlay */
+#overlay{display:none;position:fixed;inset:0;background:#000c;z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
 #overlay.show{display:flex;}
-#ov-icn{font-size:3.8rem;animation:pop .32s cubic-bezier(.17,.67,.52,1.4);}
-#ov-msg{font-family:'IBM Plex Mono',monospace;letter-spacing:3px;font-size:.85rem;color:#fff;}
+#modal-excluir.show, #modal-redef-senha.show{display:flex!important;}
+#ov-icn{font-size:4rem;animation:pop .32s cubic-bezier(.17,.67,.52,1.4);}
+#ov-msg{font-family:'Inter',sans-serif;letter-spacing:2px;font-size:.95rem;color:#fff;font-weight:700;}
 @keyframes pop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
 
-#rodape{background:#003087;border-top:1px solid #002060;padding:7px 18px;display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:#aabbd4;letter-spacing:1px;}
-#btn-acess, #btn-mesario{cursor:pointer;padding:4px 9px;border:1px solid #335588;border-radius:3px;transition:all .15s;}
-#btn-acess:hover, #btn-mesario:hover{border-color:#aabbd4;color:#fff;}
-#btn-acess.on{border-color:#FFD700;color:#FFD700;}
+/* Rodapé */
+#rodape{
+  background:var(--vox-green-dk);
+  padding:9px 28px;display:flex;
+  justify-content:space-between;align-items:center;
+  font-size:.68rem;color:rgba(255,255,255,.7);letter-spacing:1px;
+}
+#btn-acess, #btn-mesario{
+  cursor:pointer;padding:6px 12px;
+  border:1px solid rgba(255,255,255,.2);border-radius:14px;
+  transition:all .15s;color:rgba(255,255,255,.85);
+}
+#btn-acess:hover, #btn-mesario:hover{border-color:rgba(255,255,255,.5);color:#fff;}
+#btn-acess.on{border-color:var(--vox-yellow);color:var(--vox-yellow);}
 
-.modo-acess .inp{font-size:1.7rem;}
-.modo-acess .tcl{font-size:1.9rem;padding:18px 0;}
-.modo-acess .btn{font-size:.82rem;padding:16px 8px;}
-.modo-acess .msg{font-size:.96rem;}
-
-/* Mesário logged pill */
 #mesario-pill{
   display:none;
-  background:#1a7a3a;color:#fff;
-  font-family:'IBM Plex Mono',monospace;font-size:.58rem;
-  padding:3px 9px;border-radius:10px;letter-spacing:1px;
+  background:var(--vox-yellow);color:#7c4a00;
+  font-size:.62rem;font-weight:700;
+  padding:4px 11px;border-radius:11px;letter-spacing:.5px;
   margin-right:4px;
 }
 #mesario-pill.show{display:inline-block;}
+
+.modo-acess .inp{font-size:1.6rem;}
+.modo-acess .tcl{font-size:1.9rem;}
+.modo-acess .btn{font-size:.92rem;padding:18px 14px;}
+.modo-acess .msg{font-size:1.05rem;}
+
+/* Responsividade básica para telas menores */
+@media (max-width:980px){
+  .vox-home{grid-template-columns:1fr;}
+  .tse-grid{grid-template-columns:1fr;}
+  .audit-grid{grid-template-columns:1fr;}
+  .tse-side-ref{display:none;}
+}
 </style>
 </head>
 <body>
@@ -469,6 +828,10 @@ body{
     </tr></thead>
     <tbody id="res-print-tbody"></tbody>
   </table>
+  <div id="res-print-chart-wrap" style="margin-top:20px;text-align:center;page-break-inside:avoid;">
+    <div style="font-size:.85rem;font-weight:700;margin-bottom:8px;">VISÃO GRÁFICA DE VOTOS</div>
+    <img id="res-print-chart-img" style="max-width:100%;border:1px solid #000;" alt="">
+  </div>
   <div id="res-print-footer" style="margin-top:18px;font-size:.72rem;border-top:1px solid #000;padding-top:10px;"></div>
 </div>
 
@@ -504,6 +867,32 @@ body{
   <div id="part-print-footer" style="margin-top:18px;font-size:.72rem;border-top:1px solid #000;padding-top:10px;"></div>
 </div>
 
+<!-- PROPAGANDA ELEITORAL IMPRESSÃO -->
+<div id="prop-print">
+  <div style="text-align:center;border-bottom:3px solid #1B5E2C;padding-bottom:14px;margin-bottom:24px;">
+    <div style="font-size:1.5rem;font-weight:800;letter-spacing:2px;color:#1B5E2C;">PROPAGANDA ELEITORAL</div>
+    <div style="font-size:1rem;font-weight:600;margin-top:6px;color:#333;">Eleição CIPA — SENAI</div>
+    <div id="prop-print-titulo" style="font-size:.95rem;margin-top:6px;color:#555;"></div>
+  </div>
+  <div style="margin-bottom:18px;font-size:.95rem;text-align:center;color:#444;">
+    <strong>CONHEÇA OS CANDIDATOS</strong><br>
+    Vote no número do candidato de sua preferência
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:1rem;">
+    <thead>
+      <tr style="background:#1B5E2C;color:#fff;">
+        <th style="border:2px solid #1B5E2C;padding:12px 14px;text-align:center;width:120px;">NÚMERO</th>
+        <th style="border:2px solid #1B5E2C;padding:12px 14px;text-align:left;">CANDIDATO</th>
+      </tr>
+    </thead>
+    <tbody id="prop-print-tbody"></tbody>
+  </table>
+  <div style="margin-top:24px;text-align:center;font-size:.85rem;color:#666;border-top:1px dashed #999;padding-top:14px;">
+    Sua participação é fundamental para a CIPA do SENAI.<br>
+    <strong>Compareça e vote!</strong>
+  </div>
+</div>
+
 <!-- URNA -->
 <div id="urna">
 
@@ -521,10 +910,28 @@ body{
   <!-- TELAS -->
   <div id="conteudo">
 
-    <!-- LISTA ELEIÇÕES (público: só em andamento) -->
+    <!-- LISTA ELEIÇÕES (público) - estilo Vox -->
     <div id="tela-lista" class="tela ativa">
-      <div class="ttela">Eleições em andamento</div>
-      <div id="lista-wrap"></div>
+      <div class="vox-home">
+        <div class="vox-home-left">
+          <div class="vox-logo-icon">
+            <img src="/static/cipa.png" alt="CIPA" style="width:88px;height:88px;border-radius:50%;background:#fff;padding:6px;border:2px solid var(--vox-green-dk);box-shadow:var(--shadow-md);object-fit:contain;">
+          </div>
+          <div class="vox-title">SISTEMA ELEITORAL CIPA</div>
+          <div class="vox-divider"></div>
+          <div style="text-align:center;color:var(--vox-text-mid);font-size:.92rem;line-height:1.6;max-width:340px;margin:0 auto;">
+            Selecione uma eleição na lista ao lado para iniciar a votação ou ver os resultados de uma eleição encerrada.
+          </div>
+          <div class="vox-foot">Tecnologia SENAI · CIPA 2026</div>
+        </div>
+        <div class="vox-home-right">
+          <div class="vox-right-title">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#1B5E2C" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            ELEIÇÕES DISPONÍVEIS
+          </div>
+          <div class="vox-right-list" id="lista-wrap"></div>
+        </div>
+      </div>
     </div>
 
     <!-- CPF -->
@@ -544,62 +951,68 @@ body{
       </div>
     </div>
 
-    <!-- VOTAÇÃO TSE STYLE -->
+    <!-- VOTAÇÃO ESTILO VOX (TSE-like) -->
     <div id="tela-votacao-tse" class="tela">
-      <div class="tse-wrap">
-        <div class="tse-header" id="tse-header">ELEIÇÃO CIPA</div>
-
-        <div class="tse-seu-voto">Seu voto para</div>
-        <div style="font-size:.9rem;font-weight:600;color:#222;margin-bottom:10px;" id="tse-cargo-label">Membro da CIPA</div>
-
-        <div class="tse-digitos">
-          <div class="tse-dig cursor" id="tdig-0">&nbsp;</div>
-          <div class="tse-dig" id="tdig-1">&nbsp;</div>
-          <div class="tse-dig" id="tdig-2">&nbsp;</div>
-          <div class="tse-dig" id="tdig-3">&nbsp;</div>
+      <div class="tse-grid">
+        <!-- Botão voltar discreto no canto -->
+        <div class="tse-voltar-wrap">
+          <button class="btn-voltar-tse" onclick="tseVoltarLista()">← Cancelar</button>
         </div>
 
-        <div class="tse-cand-area">
-          <div id="tse-cand-info" style="display:none;">
-            <div class="tse-cand-nome-lbl">Nome</div>
-            <div class="tse-cand-nome" id="tse-cand-nome"></div>
-            <div id="tse-cand-foto-wrap"></div>
+        <!-- Painel ESQUERDO: claro, voto + candidato + foto -->
+        <div class="tse-left">
+          <div class="tse-seu-voto">SEU VOTO PARA</div>
+          <div class="tse-cargo" id="tse-cargo-label">CANDIDATO</div>
+
+          <div class="tse-digitos">
+            <div class="tse-dig cursor" id="tdig-0">&nbsp;</div>
+            <div class="tse-dig" id="tdig-1">&nbsp;</div>
+            <div class="tse-dig" id="tdig-2">&nbsp;</div>
+            <div class="tse-dig" id="tdig-3">&nbsp;</div>
           </div>
-          <div id="tse-instruct" class="tse-instruct">
+
+          <div class="tse-cand-area">
+            <div class="tse-cand-foto-area empty" id="tse-cand-foto-wrap"></div>
+            <div id="tse-cand-info" style="display:none;">
+              <div class="tse-cand-nome-lbl">Nome</div>
+              <div class="tse-cand-nome" id="tse-cand-nome"></div>
+            </div>
+            <div class="tse-bg-icon"></div>
+          </div>
+
+          <div class="tse-instruct" id="tse-instruct">
             Digite o número do candidato e tecle <strong>CONFIRMA</strong>.<br>
             Para votar em <strong>BRANCO</strong>, aperte a tecla correspondente.<br>
             Para <strong>CORRIGIR</strong>, tecle a tecla laranja.
           </div>
         </div>
-      </div>
 
-      <div class="tse-botoes">
-        <button class="tcl" onclick="tseDig('1')">1</button>
-        <button class="tcl" onclick="tseDig('2')">2</button>
-        <button class="tcl" onclick="tseDig('3')">3</button>
-        <button class="tcl tcl-action tcl-branco" onclick="tseBranco()">BRANCO</button>
-        <button class="tcl" onclick="tseDig('4')">4</button>
-        <button class="tcl" onclick="tseDig('5')">5</button>
-        <button class="tcl" onclick="tseDig('6')">6</button>
-        <button class="tcl tcl-action tcl-corrige" onclick="tseCorrige()">CORRIGE</button>
-        <button class="tcl" onclick="tseDig('7')">7</button>
-        <button class="tcl" onclick="tseDig('8')">8</button>
-        <button class="tcl" onclick="tseDig('9')">9</button>
-        <button class="tcl tcl-action tcl-confirma" onclick="tseConfirma()">CONFIRMA</button>
-        <div></div>
-        <button class="tcl" onclick="tseDig('0')">0</button>
-        <div></div>
-        <div></div>
-      </div>
+        <!-- Painel DIREITO: preto, teclado -->
+        <div class="tse-right">
+          <div class="tse-right-title" id="tse-header">ELEIÇÃO CIPA</div>
+          <div class="tse-keypad">
+            <button class="tcl" onclick="tseDig('1')">1</button>
+            <button class="tcl" onclick="tseDig('2')">2</button>
+            <button class="tcl" onclick="tseDig('3')">3</button>
+            <button class="tcl" onclick="tseDig('4')">4</button>
+            <button class="tcl" onclick="tseDig('5')">5</button>
+            <button class="tcl" onclick="tseDig('6')">6</button>
+            <button class="tcl" onclick="tseDig('7')">7</button>
+            <button class="tcl" onclick="tseDig('8')">8</button>
+            <button class="tcl" onclick="tseDig('9')">9</button>
+            <div></div>
+            <button class="tcl tcl-zero" onclick="tseDig('0')">0</button>
+            <div></div>
+          </div>
 
-      <div class="tse-voltar">
-        <button class="btn-voltar-tse" onclick="tseVoltarLista()">← Cancelar e voltar</button>
-      </div>
+          <div class="tse-encerrar" onclick="tseVoltarLista()">ENCERRAR VOTAÇÃO</div>
 
-      <!-- Referência discreta de candidatos -->
-      <div class="tse-ref" id="tse-ref" style="display:none;">
-        <div class="tse-ref-title">Candidatos</div>
-        <div class="tse-ref-list" id="tse-ref-list"></div>
+          <div class="tse-acoes">
+            <button class="tcl-action tcl-branco" onclick="tseBranco()">BRANCO</button>
+            <button class="tcl-action tcl-corrige" onclick="tseCorrige()">CORRIGE</button>
+            <button class="tcl-action tcl-confirma" onclick="tseConfirma()">CONFIRMA</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -770,6 +1183,7 @@ body{
           <button class="btn btn-g" onclick="verRelatorioParticipacao()" style="background:#003087;">📋 Relatório de participação</button>
           <button class="btn btn-n" onclick="verLog()">📋 Log de votações</button>
           <button class="btn btn-n" onclick="imprimirZeresima()">🖨 Imprimir zerésima</button>
+          <button class="btn btn-n" onclick="imprimirPropaganda()">📢 Imprimir propaganda eleitoral</button>
           <button class="btn btn-r" id="btn-encerrar" onclick="encerrarEleicao()">⛔ Encerrar eleição</button>
           <button class="btn btn-o" id="btn-ocultar" onclick="ocultarEleicao()">👁 Ocultar da tela inicial</button>
           <button class="btn btn-g" id="btn-exibir" onclick="exibirEleicao()" style="display:none;">👁 Exibir na tela inicial</button>
@@ -965,7 +1379,7 @@ async function irParaLista() {
   const res = await fetch('/api/eleicoes').then(r => r.json()).catch(() => ({eleicoes:[]}));
   const wrap = document.getElementById('lista-wrap');
   if (!res.eleicoes || !res.eleicoes.length) {
-    wrap.innerHTML = '<div class="msg">Nenhuma eleição disponível no momento.</div>';
+    wrap.innerHTML = '<div class="msg" style="background:#fff;">Nenhuma eleição disponível no momento.</div>';
     return;
   }
   // Sort: open first, then closed
@@ -975,26 +1389,29 @@ async function irParaLista() {
     return (b.criada_em || '').localeCompare(a.criada_em || '');
   });
   wrap.innerHTML = '';
-  res.eleicoes.forEach(e => {
+  res.eleicoes.forEach((e, idx) => {
     const div = document.createElement('div');
-    div.className = 'card';
+    div.className = 'vox-cand-card';
     if (e.aberta) {
-      div.innerHTML = `<div>
-        <div class="ct">${e.titulo}</div>
-        <div class="cm">Iniciada em ${e.criada_em}</div>
-      </div><span class="badge badge-on">EM ANDAMENTO</span>`;
+      div.innerHTML = `<div class="vox-cand-num">${String(idx+1).padStart(2,'0')}</div>
+        <div class="vox-cand-info">
+          <div class="vox-cand-name">${e.titulo}</div>
+          <div class="vox-cand-meta">Iniciada em ${e.criada_em}</div>
+        </div>
+        <span class="vox-cand-badge">EM ANDAMENTO</span>`;
       div.onclick = () => {
         eAtual = e.id;
         document.getElementById('eleicao-badge').textContent = e.titulo;
         irParaCPF();
       };
     } else if (e.encerrada) {
-      div.innerHTML = `<div>
-        <div class="ct">${e.titulo}</div>
-        <div class="cm">Encerrada em ${e.encerrada_em || e.criada_em}</div>
-      </div><span class="badge badge-enc">ENCERRADA</span>`;
+      div.innerHTML = `<div class="vox-cand-num">${String(idx+1).padStart(2,'0')}</div>
+        <div class="vox-cand-info">
+          <div class="vox-cand-name">${e.titulo}</div>
+          <div class="vox-cand-meta">Encerrada em ${e.encerrada_em || e.criada_em}</div>
+        </div>
+        <span class="vox-cand-badge enc">ENCERRADA</span>`;
       div.onclick = () => {
-        // Route directly to public results view — NEVER the mesário panel
         verResultadoPublico(e.id, e.titulo);
       };
     }
@@ -1065,7 +1482,7 @@ async function carregarReferenciaCandidatos() {
     const r = await fetch(`/api/eleicoes/${eAtual}/candidatos`).then(r => r.json()).catch(() => null);
     if (r && r.ok && r.candidatos && r.candidatos.length) {
       list.innerHTML = r.candidatos.map(c =>
-        `<span class="tse-ref-item"><b>${c.numero}</b>${c.nome}</span>`
+        `<div class="tse-side-item"><b>${c.numero}</b>${c.nome}</div>`
       ).join('');
       ref.style.display = 'block';
     } else {
@@ -1080,7 +1497,9 @@ function resetCandidatoInfo() {
   document.getElementById('tse-cand-info').style.display = 'none';
   document.getElementById('tse-instruct').style.display = 'block';
   document.getElementById('tse-cand-nome').textContent = '';
-  document.getElementById('tse-cand-foto-wrap').innerHTML = '';
+  const fotoWrap = document.getElementById('tse-cand-foto-wrap');
+  fotoWrap.innerHTML = '';
+  fotoWrap.classList.add('empty');
 }
 
 function atualizarDigitos() {
@@ -1111,9 +1530,11 @@ async function buscarCandidato() {
     document.getElementById('tse-cand-nome').textContent = c.nome;
     const fotoWrap = document.getElementById('tse-cand-foto-wrap');
     if (c.foto) {
-      fotoWrap.innerHTML = `<img class="tse-cand-foto" src="${c.foto}" alt="">`;
+      fotoWrap.innerHTML = `<img src="${c.foto}" alt="">`;
+      fotoWrap.classList.remove('empty');
     } else {
-      fotoWrap.innerHTML = `<div class="tse-cand-foto-placeholder">Sem foto</div>`;
+      fotoWrap.innerHTML = '';
+      fotoWrap.classList.add('empty');
     }
     beepFim();
     falar(c.nome);
@@ -1629,8 +2050,52 @@ async function imprimirZeresima() {
   document.getElementById('zer-print').classList.add('printing');
   document.getElementById('res-print').classList.remove('printing');
   document.getElementById('part-print').classList.remove('printing');
+  document.getElementById('prop-print').classList.remove('printing');
   window.print();
   document.getElementById('zer-print').classList.remove('printing');
+}
+
+async function imprimirPropaganda() {
+  // Usa a rota pública /candidatos quando a eleição está aberta;
+  // se já encerrou, usa /resultado (também retorna nome+numero).
+  let cands = [];
+  let titulo = '';
+  let r1 = await fetch(`/api/eleicoes/${eAtual}/candidatos`).then(r => r.json()).catch(() => ({ok:false}));
+  if (r1.ok && r1.candidatos && r1.candidatos.length) {
+    cands = r1.candidatos;
+  } else {
+    // Fallback: pega via resultado (eleição encerrada ou pendente)
+    const r2 = await fetch(`/api/eleicoes/${eAtual}/resultado`).then(r => r.json()).catch(() => ({ok:false}));
+    if (r2.ok && r2.candidatos) cands = r2.candidatos;
+    if (r2.ok) titulo = r2.titulo;
+  }
+  // Pega título via status se não pegamos antes
+  if (!titulo) {
+    const st = await fetch(`/api/eleicoes/${eAtual}/status`).then(r => r.json()).catch(() => ({}));
+    titulo = st.titulo || '';
+  }
+  if (!cands || !cands.length) { alert('Nenhum candidato cadastrado nesta eleição.'); return; }
+
+  // Ordenar por número
+  cands.sort((a, b) => Number(a.numero) - Number(b.numero));
+
+  document.getElementById('prop-print-titulo').textContent = titulo ? `Eleição: ${titulo}` : '';
+  const tb = document.getElementById('prop-print-tbody');
+  tb.innerHTML = '';
+  cands.forEach((c, i) => {
+    const bg = i % 2 === 0 ? '#fafafa' : '#fff';
+    tb.innerHTML += `<tr style="background:${bg};">
+      <td style="border:1px solid #1B5E2C;padding:14px;text-align:center;font-size:1.6rem;font-weight:800;color:#1B5E2C;font-family:'IBM Plex Mono',monospace;">${c.numero}</td>
+      <td style="border:1px solid #1B5E2C;padding:14px 18px;font-size:1.05rem;font-weight:600;color:#222;">${c.nome}</td>
+    </tr>`;
+  });
+
+  document.getElementById('prop-print').classList.add('printing');
+  document.getElementById('zer-print').classList.remove('printing');
+  document.getElementById('res-print').classList.remove('printing');
+  document.getElementById('part-print').classList.remove('printing');
+  window.print();
+  document.getElementById('prop-print').classList.remove('printing');
 }
 
 // ═══════════════════════════════════════════
@@ -1659,61 +2124,151 @@ function renderDashboard(res, wrapId) {
   }
   const total = res.total_votos || 0;
   const totalFunc = res.total_funcionarios || 0;
-  const estado = res.eleicao_encerrada ? 'RESULTADO FINAL' : 'APURAÇÃO PARCIAL';
+  const estado = res.eleicao_encerrada ? 'Relatório Final' : 'Apuração Parcial';
   const participacao = totalFunc > 0 ? Math.round((total / totalFunc) * 100) : 0;
   const abstencao = totalFunc > 0 ? totalFunc - total : 0;
 
-  let h = '';
-  h += `<div class="msg" style="margin-bottom:10px;text-align:center;">
-    <strong>${res.titulo}</strong><br>
-    <span style="font-size:.75rem;color:#666;">${estado}</span>
-  </div>`;
-  h += `<div class="dash-cards">
+  const canvasBarId = `chartBar_${wrapId}`;
+
+  // Eleitos: 1º = Vice-Presidente; 2º = Suplente (modelo CIPA)
+  const c1 = res.candidatos[0];
+  const c2 = res.candidatos[1];
+
+  let h = `
+  <div class="audit-header">
+    <div class="audit-title-block">
+      <div class="audit-title-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 13h2v8H3zm4-6h2v14H7zm4 4h2v10h-2zm4-7h2v17h-2zm4 9h2v8h-2z"/></svg>
+      </div>
+      <div class="audit-title-text">
+        <h2>AUDITORIA — ${res.titulo.toUpperCase()}</h2>
+        <p>Vox · A Voz do Povo · ${estado}</p>
+      </div>
+    </div>
+    <div class="audit-export-buttons">
+      <button class="btn-export-pdf" onclick="imprimirResultado()">EXPORTAR AUDITORIA PDF</button>
+      <button class="btn-export-csv" onclick="exportarAuditoriaCSV()">EXPORTAR AUDITORIA EXCEL</button>
+    </div>
+  </div>
+
+  <div class="dash-cards">
     <div class="dash-card"><div class="dc-val">${total}</div><div class="dc-lbl">Total Votos</div></div>
     <div class="dash-card"><div class="dc-val">${totalFunc}</div><div class="dc-lbl">Funcionários</div></div>
     <div class="dash-card"><div class="dc-val">${participacao}%</div><div class="dc-lbl">Participação</div></div>
-  </div>`;
-  const canvasBarId = `chartBar_${wrapId}`;
-  const canvasPieId = `chartPie_${wrapId}`;
-  h += `<div class="chart-wrap"><div class="chart-title">Votos por candidato</div><canvas id="${canvasBarId}"></canvas></div>`;
-  h += `<div class="chart-wrap"><div class="chart-title">Distribuição de votos</div><canvas id="${canvasPieId}"></canvas></div>`;
-  h += `<div style="margin-top:10px;">`;
+  </div>
+
+  <div class="audit-grid">
+    <div class="audit-col-l">`;
+
+  if (c1) {
+    h += `<div class="audit-eleito-card">
+      <div class="audit-eleito-tag">🏆 VICE-PRESIDENTE ELEITO</div>
+      <div class="audit-eleito-nome">${c1.nome}</div>
+      <div class="audit-eleito-total">Total: ${c1.votos} voto(s)</div>
+    </div>`;
+  }
+  if (c2) {
+    h += `<div class="audit-eleito-card suplente">
+      <div class="audit-eleito-tag">🎖 SUPLENTE</div>
+      <div class="audit-eleito-nome">${c2.nome}</div>
+      <div class="audit-eleito-total">Total: ${c2.votos} voto(s)</div>
+    </div>`;
+  }
+
+  h += `<div class="audit-rank-card">
+    <div class="audit-rank-title">Ranking de Votação</div>
+    <div class="audit-rank-list">`;
   res.candidatos.forEach((c, i) => {
-    const pct = total > 0 ? Math.round((c.votos / total) * 100) : 0;
-    const fotoHtml = c.foto ? `<img class="cr-foto" src="${c.foto}" alt="">` : '';
-    h += `<div class="cr ${i === 0 ? 'p1' : ''}">
-      <div class="pos">${i + 1}</div>
-      ${fotoHtml}
-      <div class="inf"><div class="nr">${c.nome}</div>
-        <div class="sr">Nº ${c.numero}</div>
-        <div class="barra"><div class="bf" style="width:${pct}%"></div></div></div>
-      <div class="vr">${c.votos}<br><span style="font-size:.58rem;color:#aaa;">${pct}%</span></div>
+    const pct = total > 0 ? ((c.votos / total) * 100).toFixed(1) : '0.0';
+    let tag = '';
+    if (i === 0) tag = '<span class="audit-rank-tag elect">Vice-Presidente</span>';
+    else if (i === 1) tag = '<span class="audit-rank-tag supl">Suplente</span>';
+    h += `<div class="audit-rank-row">
+      <div class="audit-rank-pos">${i+1}º</div>
+      ${tag}
+      <div class="audit-rank-name">
+        <div class="nm">${c.nome}</div>
+        <div class="lt">Nº ${c.numero}</div>
+      </div>
+      <div class="audit-rank-vt">${c.votos} (${pct}%)</div>
     </div>`;
   });
-  if (res.votos_brancos > 0) {
-    const pct = total > 0 ? Math.round((res.votos_brancos / total) * 100) : 0;
-    h += `<div class="cr"><div class="pos" style="font-size:.9rem;">⬜</div>
-      <div class="inf"><div class="nr">Votos em Branco</div>
-        <div class="barra"><div class="bf" style="width:${pct}%;background:#bbb;"></div></div></div>
-      <div class="vr">${res.votos_brancos}<br><span style="font-size:.58rem;color:#aaa;">${pct}%</span></div></div>`;
+  // Branco e Nulo (CIPA padrão: nulo=abstenção)
+  if (true) {
+    const pct = total > 0 ? ((res.votos_brancos / total) * 100).toFixed(1) : '0.0';
+    h += `<div class="audit-rank-row">
+      <div class="audit-rank-pos">${res.candidatos.length+1}º</div>
+      <div class="audit-rank-name"><div class="nm" style="color:#6b7280;">BRANCO</div></div>
+      <div class="audit-rank-vt" style="color:#6b7280;">${res.votos_brancos} (${pct}%)</div>
+    </div>`;
   }
   if (abstencao > 0) {
-    h += `<div class="cr"><div class="pos" style="font-size:.7rem;color:#ccc;">—</div>
-      <div class="inf"><div class="nr" style="color:#999;">Abstenção</div>
-        <div class="sr">Funcionários que não votaram</div></div>
-      <div class="vr" style="color:#999;">${abstencao}</div></div>`;
+    const pctAbs = totalFunc > 0 ? ((abstencao / totalFunc) * 100).toFixed(1) : '0.0';
+    h += `<div class="audit-rank-row">
+      <div class="audit-rank-pos">—</div>
+      <div class="audit-rank-name"><div class="nm" style="color:#9ca3af;">ABSTENÇÃO</div><div class="lt">Não votaram</div></div>
+      <div class="audit-rank-vt" style="color:#9ca3af;">${abstencao} (${pctAbs}%)</div>
+    </div>`;
   }
-  h += `</div>`;
+  h += `</div></div>
+    </div>
+
+    <div class="audit-col-r">
+      <div class="audit-chart-card">
+        <div class="audit-chart-title">Visão Gráfica de Votos</div>
+        <div class="audit-chart-wrap">
+          <canvas id="${canvasBarId}"></canvas>
+        </div>
+      </div>
+      <div class="audit-log-card">
+        <div class="audit-log-title">📜 REGISTRO DE AUDITORIA (VOX)</div>
+        <div class="audit-log-list" id="audit-log-list-${wrapId}"></div>
+      </div>
+    </div>
+  </div>`;
+
   div.innerHTML = h;
-  setTimeout(() => renderCharts(res, canvasBarId, canvasPieId), 100);
+  setTimeout(() => {
+    renderCharts(res, canvasBarId);
+    carregarAuditLogResumido(`audit-log-list-${wrapId}`);
+  }, 100);
 }
 
-function renderCharts(res, canvasBarId, canvasPieId) {
-  const colors = ['#003087','#1a7a3a','#c45000','#FFD700','#6B2D5B','#0077B6','#E76F51','#264653','#2A9D8F','#E9C46A'];
-  const labels = res.candidatos.map(c => c.nome.length > 15 ? c.nome.substring(0, 15) + '…' : c.nome);
+async function carregarAuditLogResumido(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target || !eAtual) return;
+  try {
+    const r = await fetch(`/api/eleicoes/${eAtual}/log`).then(r => r.json()).catch(() => null);
+    if (!r || !r.ok) {
+      target.innerHTML = '<div style="opacity:.6;">Log não disponível.</div>';
+      return;
+    }
+    // Mostra só os últimos 6 eventos
+    const recent = [...r.log].reverse().slice(0, 6);
+    target.innerHTML = recent.map(l => {
+      const cpf = l.cpf ? ` · ${l.cpf}` : '';
+      return `<div>[${l.hora.split(' ')[1] || l.hora}] ${l.evento}${cpf}</div>`;
+    }).join('');
+  } catch (e) {
+    target.innerHTML = '<div style="opacity:.6;">Log não disponível.</div>';
+  }
+}
+
+function renderCharts(res, canvasBarId) {
+  const labels = res.candidatos.map(c => `${c.nome} (${c.numero})`);
   const votos = res.candidatos.map(c => c.votos);
-  if (res.votos_brancos > 0) { labels.push('Branco'); votos.push(res.votos_brancos); }
-  const bgColors = labels.map((_, i) => colors[i % colors.length]);
+  labels.push('BRANCO');
+  votos.push(res.votos_brancos);
+  const totalFunc = res.total_funcionarios || 0;
+  const total = res.total_votos || 0;
+  const abst = totalFunc > 0 ? totalFunc - total : 0;
+  if (abst > 0) {
+    labels.push('NULO');
+    votos.push(0); // CIPA: NULO sempre 0; abstenção é separada
+  }
+
+  const greenColor = '#1B5E2C';
+  const colors = labels.map(() => greenColor);
 
   if (chartBarInstance) { chartBarInstance.destroy(); chartBarInstance = null; }
   if (chartPieInstance) { chartPieInstance.destroy(); chartPieInstance = null; }
@@ -1722,18 +2277,73 @@ function renderCharts(res, canvasBarId, canvasPieId) {
   if (ctxBar) {
     chartBarInstance = new Chart(ctxBar, {
       type: 'bar',
-      data: { labels, datasets: [{ label: 'Votos', data: votos, backgroundColor: bgColors, borderRadius: 4, maxBarThickness: 40 }] },
-      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Votos',
+          data: votos,
+          backgroundColor: colors,
+          borderRadius: 4,
+          maxBarThickness: 32
+        }]
+      },
+      options: {
+        indexAxis: 'y', // Horizontal bars like in the reference image
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600 },
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: true }
+        },
+        scales: {
+          x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
+          y: { ticks: { font: { size: 11, weight: 'bold' } } }
+        }
+      },
+      plugins: [{
+        id: 'valueLabels',
+        afterDatasetsDraw(chart) {
+          const { ctx } = chart;
+          chart.data.datasets[0].data.forEach((value, index) => {
+            const meta = chart.getDatasetMeta(0).data[index];
+            if (!meta) return;
+            ctx.save();
+            ctx.fillStyle = '#1F2937';
+            ctx.font = 'bold 13px Inter, sans-serif';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(value, meta.x + 8, meta.y);
+            ctx.restore();
+          });
+        }
+      }]
     });
   }
-  const ctxPie = document.getElementById(canvasPieId);
-  if (ctxPie) {
-    chartPieInstance = new Chart(ctxPie, {
-      type: 'doughnut',
-      data: { labels, datasets: [{ data: votos, backgroundColor: bgColors, borderWidth: 2, borderColor: '#fff' }] },
-      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } } } }
-    });
-  }
+}
+
+async function exportarAuditoriaCSV() {
+  const res = await fetch(`/api/eleicoes/${eAtual}/resultado`).then(r => r.json());
+  if (!res.ok) { alert('Erro ao carregar dados.'); return; }
+  let csv = 'Posicao,Nome,Numero,Votos,Percentual\n';
+  const total = res.total_votos || 0;
+  res.candidatos.forEach((c, i) => {
+    const pct = total > 0 ? ((c.votos / total) * 100).toFixed(1) : '0.0';
+    csv += `${i+1},"${c.nome}",${c.numero},${c.votos},${pct}%\n`;
+  });
+  const pctB = total > 0 ? ((res.votos_brancos / total) * 100).toFixed(1) : '0.0';
+  csv += `,BRANCO,,${res.votos_brancos},${pctB}%\n`;
+  csv += `\nTotal Votos,${total}\n`;
+  csv += `Total Funcionarios,${res.total_funcionarios}\n`;
+  const part = res.total_funcionarios > 0 ? ((total/res.total_funcionarios)*100).toFixed(1) : '0.0';
+  csv += `Participacao,${part}%\n`;
+
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `auditoria_${res.titulo.replace(/\s+/g,'_')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 async function imprimirResultado() {
@@ -1771,9 +2381,30 @@ async function imprimirResultado() {
     `<strong>Participação:</strong> ${participacao}% (${total} de ${res.total_funcionarios} funcionários)<br><br>
     Assinatura do Mesário: ___________________________________ &nbsp;&nbsp; Data: ___/___/______<br><br>
     Assinatura do Presidente da Comissão: ___________________________________`;
+
+  // Capturar o gráfico atual (se existir) e embedar na impressão
+  const printChartImg = document.getElementById('res-print-chart-img');
+  const printChartWrap = document.getElementById('res-print-chart-wrap');
+  let chartCaptured = false;
+  if (chartBarInstance && chartBarInstance.canvas) {
+    try {
+      // toBase64Image gera o gráfico em PNG (Chart.js nativo)
+      const dataUrl = chartBarInstance.toBase64Image('image/png', 1);
+      printChartImg.src = dataUrl;
+      printChartWrap.style.display = 'block';
+      chartCaptured = true;
+    } catch (e) {
+      console.warn('Falha ao capturar gráfico:', e);
+    }
+  }
+  if (!chartCaptured) {
+    printChartWrap.style.display = 'none';
+  }
+
   document.getElementById('res-print').classList.add('printing');
   document.getElementById('zer-print').classList.remove('printing');
   document.getElementById('part-print').classList.remove('printing');
+  document.getElementById('prop-print').classList.remove('printing');
   window.print();
   document.getElementById('res-print').classList.remove('printing');
 }
@@ -1865,6 +2496,7 @@ async function imprimirRelatorioParticipacao() {
     Assinatura do Presidente da Comissão: ___________________________________`;
   document.getElementById('zer-print').classList.remove('printing');
   document.getElementById('res-print').classList.remove('printing');
+  document.getElementById('prop-print').classList.remove('printing');
   document.getElementById('part-print').classList.add('printing');
   window.print();
   document.getElementById('part-print').classList.remove('printing');
@@ -1921,20 +2553,26 @@ async function verHistoricoEleicoes() {
     else if (item.estado === 'Encerrada') badgeCls += ' badge-enc';
     else if (item.estado === 'Excluída') badgeCls += ' badge-ocu';
     const ocultaTxt = item.oculta ? ' · OCULTA' : '';
-    const cls = item.excluida ? 'hist-row excl' : 'hist-row';
+    const cls = item.excluida ? 'hist-row excl' : 'hist-row hist-clickable';
     let extra = '';
     if (item.excluida) {
       extra = `<div class="hist-extra">Excluída em ${item.excluida_em || '-'} por ${item.excluida_por || '-'}</div>`;
     } else if (item.encerrada_em) {
       extra = `<div class="hist-meta">Encerrada em ${item.encerrada_em}</div>`;
     }
-    h += `<div class="${cls}">
+    // Itens não-excluídos são clicáveis para consulta
+    const onclickAttr = item.excluida ? '' :
+      ` onclick="abrirCfg('${item.id}', ${JSON.stringify(item.titulo).replace(/"/g, '&quot;')})"`;
+    const arrow = item.excluida ? '' :
+      '<div class="hist-arrow">→</div>';
+    h += `<div class="${cls}"${onclickAttr}>
       <div class="hist-top">
         <div class="hist-titulo">${item.titulo}</div>
         <span class="${badgeCls}">${item.estado}${ocultaTxt}</span>
       </div>
       <div class="hist-meta">Criada em ${item.criada_em || '-'} · ${item.total_votos} voto(s) · ${item.total_funcionarios} funcionário(s)</div>
       ${extra}
+      ${arrow}
     </div>`;
   });
   h += '</div>';

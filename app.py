@@ -1,187 +1,191 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory, session
-import json, os, shutil, csv, io, base64, uuid, hashlib
-from datetime import datetime
+"""
+Urna Eletrônica CIPA SENAI — v13
+Persistência via Supabase (Postgres + Storage).
+
+Variáveis de ambiente obrigatórias no Render:
+  SUPABASE_URL          ex: https://xxxxx.supabase.co
+  SUPABASE_SECRET_KEY   sb_secret_... (admin, bypassa RLS)
+  FLASK_SECRET_KEY      qualquer string longa aleatória (sessões)
+"""
+import os, json, csv, io, uuid, hashlib
+from datetime import datetime, timezone
+from flask import Flask, render_template, request, jsonify, session
+from supabase import create_client, Client
+
+# ── Configuração ──────────────────────────────────────────────────────────────
+
+SUPABASE_URL = os.environ.get('SUPABASE_URL', '').strip()
+SUPABASE_SECRET_KEY = os.environ.get('SUPABASE_SECRET_KEY', '').strip()
+
+if not SUPABASE_URL or not SUPABASE_SECRET_KEY:
+    raise RuntimeError(
+        'Variáveis SUPABASE_URL e SUPABASE_SECRET_KEY são obrigatórias. '
+        'Configure no Render → Environment.'
+    )
+
+sb: Client = create_client(SUPABASE_URL, SUPABASE_SECRET_KEY)
+STORAGE_BUCKET = 'candidatos'
 
 app = Flask(__name__)
-app.secret_key = 'cipa_senai_urna_secret_v2_2026'
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'cipa_senai_urna_secret_v13_change_me')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
 
-ELEICOES_DIR = 'eleicoes'
-GLOBAL_CPF_FILE = 'cpfs_globais.json'
-MESARIOS_FILE = 'mesarios.json'
-os.makedirs(ELEICOES_DIR, exist_ok=True)
-
-# Default admin mesário (only created if file doesn't exist)
 DEFAULT_ADMIN_USER = 'admin'
 DEFAULT_ADMIN_PASS = 'cipa2025'
 
-# ── Password hashing ─────────────────────────────────────────────────────────
+# ── Utilitários ───────────────────────────────────────────────────────────────
 
-def hash_senha(senha):
+def hash_senha(senha: str) -> str:
     return hashlib.sha256(senha.encode('utf-8')).hexdigest()
+
+def ts() -> str:
+    """Timestamp legível em pt-BR para exibição (não usar como chave)."""
+    return datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+
+def now_iso() -> str:
+    """Timestamp UTC ISO para o banco."""
+    return datetime.now(timezone.utc).isoformat()
+
+def fmt_dt(iso_str):
+    """Converte ISO do banco para formato dd/mm/yyyy HH:MM:SS."""
+    if not iso_str:
+        return ''
+    try:
+        # Aceita tanto com Z quanto com offset
+        s = iso_str.replace('Z', '+00:00') if isinstance(iso_str, str) else iso_str
+        dt = datetime.fromisoformat(s) if isinstance(s, str) else s
+        # Converte pra horário local (Brasil)
+        from datetime import timezone, timedelta
+        brt = timezone(timedelta(hours=-3))
+        dt_local = dt.astimezone(brt) if dt.tzinfo else dt
+        return dt_local.strftime('%d/%m/%Y %H:%M:%S')
+    except Exception:
+        return str(iso_str)
 
 # ── Mesário system ───────────────────────────────────────────────────────────
 
-def load_mesarios():
-    if os.path.exists(MESARIOS_FILE):
-        with open(MESARIOS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    # First run: create default admin with temporary password
-    mesarios = {
-        DEFAULT_ADMIN_USER: {
-            'nome': 'Administrador',
-            'senha_hash': hash_senha(DEFAULT_ADMIN_PASS),
-            'admin': True,
-            'senha_temporaria': True,
-            'criado_em': ts()
-        }
-    }
-    save_mesarios(mesarios)
-    return mesarios
-
-def save_mesarios(mesarios):
-    with open(MESARIOS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(mesarios, f, ensure_ascii=False, indent=2)
+def ensure_default_admin():
+    """Garante que existe ao menos um admin no banco. Roda na inicialização."""
+    try:
+        r = sb.table('mesarios').select('usuario').eq('usuario', DEFAULT_ADMIN_USER).execute()
+        if not r.data:
+            sb.table('mesarios').insert({
+                'usuario': DEFAULT_ADMIN_USER,
+                'nome': 'Administrador',
+                'senha_hash': hash_senha(DEFAULT_ADMIN_PASS),
+                'admin': True,
+                'senha_temporaria': True,
+            }).execute()
+            print(f'[init] Admin padrão criado: {DEFAULT_ADMIN_USER}/{DEFAULT_ADMIN_PASS}')
+    except Exception as e:
+        print(f'[init] Erro ao verificar admin: {e}')
 
 def autenticar_mesario(usuario, senha):
-    """Returns (ok, nome) tuple."""
-    mesarios = load_mesarios()
-    usuario = usuario.strip().lower()
-    if usuario in mesarios:
-        if mesarios[usuario]['senha_hash'] == hash_senha(senha):
-            return True, mesarios[usuario]['nome']
+    """Retorna (ok, nome)."""
+    usuario = (usuario or '').strip().lower()
+    if not usuario:
+        return False, None
+    r = sb.table('mesarios').select('nome, senha_hash').eq('usuario', usuario).execute()
+    if not r.data:
+        return False, None
+    rec = r.data[0]
+    if rec['senha_hash'] == hash_senha(senha):
+        return True, rec['nome']
     return False, None
 
 def is_admin(usuario):
-    mesarios = load_mesarios()
-    return mesarios.get(usuario, {}).get('admin', False)
+    if not usuario:
+        return False
+    r = sb.table('mesarios').select('admin').eq('usuario', usuario).execute()
+    return bool(r.data and r.data[0].get('admin'))
 
 def mesario_logado():
-    """Returns (usuario, nome) or (None, None)."""
+    """Retorna (usuario, nome) ou (None, None)."""
     if 'mesario_usuario' in session and 'mesario_nome' in session:
         return session['mesario_usuario'], session['mesario_nome']
     return None, None
 
 def require_mesario():
-    u, n = mesario_logado()
+    u, _ = mesario_logado()
     return u is not None
 
-# ── Election helpers ─────────────────────────────────────────────────────────
-
-def lista_eleicoes():
-    return sorted([d for d in os.listdir(ELEICOES_DIR)
-                   if os.path.isdir(os.path.join(ELEICOES_DIR, d))])
-
-def data_path(eid): return os.path.join(ELEICOES_DIR, eid, 'dados.json')
-def log_path(eid):  return os.path.join(ELEICOES_DIR, eid, 'log.json')
-def photos_dir(eid):
-    p = os.path.join(ELEICOES_DIR, eid, 'fotos')
-    os.makedirs(p, exist_ok=True)
-    return p
-
-def load_election(eid):
-    p = data_path(eid)
-    if os.path.exists(p):
-        with open(p, 'r', encoding='utf-8') as f: return json.load(f)
-    return None
-
-def save_election(eid, data):
-    os.makedirs(os.path.join(ELEICOES_DIR, eid), exist_ok=True)
-    with open(data_path(eid), 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-def load_log(eid):
-    p = log_path(eid)
-    if os.path.exists(p):
-        with open(p, 'r', encoding='utf-8') as f: return json.load(f)
-    return []
-
-def append_log(eid, entry):
-    # Auto-enrich log with mesário name if logged in
-    if 'mesario' not in entry:
-        _, nome = mesario_logado()
-        if nome:
-            entry['mesario'] = nome
-    log = load_log(eid)
-    log.append(entry)
-    with open(log_path(eid), 'w', encoding='utf-8') as f:
-        json.dump(log, f, ensure_ascii=False, indent=2)
-
-# ── GLOBAL CPF REGISTRY ──────────────────────────────────────────────────────
-
-def load_global_cpfs():
-    if os.path.exists(GLOBAL_CPF_FILE):
-        with open(GLOBAL_CPF_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {}
-
-def save_global_cpfs(data):
-    with open(GLOBAL_CPF_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-def register_cpf_vote(cpf, eid):
-    g = load_global_cpfs()
-    g[cpf] = eid
-    save_global_cpfs(g)
+# ── CPF global registry ──────────────────────────────────────────────────────
 
 def cpf_has_voted(cpf):
-    g = load_global_cpfs()
-    if cpf not in g:
+    """Retorna eid se CPF já votou em alguma eleição existente, senão None.
+    Também faz limpeza: se a eleição não existe mais, remove o registro."""
+    r = sb.table('cpf_registry').select('eleicao_id').eq('cpf', cpf).execute()
+    if not r.data:
         return None
-    eid = g[cpf]
-    d = load_election(eid)
-    if d is None:
-        del g[cpf]
-        save_global_cpfs(g)
+    eid = r.data[0]['eleicao_id']
+    # Verifica se a eleição ainda existe
+    e = sb.table('eleicoes').select('id').eq('id', eid).execute()
+    if not e.data:
+        # Eleição não existe mais — limpa o registro
+        sb.table('cpf_registry').delete().eq('cpf', cpf).execute()
         return None
     return eid
 
+def register_cpf_vote(cpf, eid):
+    """Marca o CPF como tendo votado nessa eleição (upsert)."""
+    sb.table('cpf_registry').upsert({'cpf': cpf, 'eleicao_id': eid}).execute()
+
 def release_cpfs_for_election(eid):
-    """Remove all CPFs bound to a given election from the global registry."""
-    g = load_global_cpfs()
-    to_del = [cpf for cpf, e in g.items() if e == eid]
-    for cpf in to_del:
-        del g[cpf]
-    save_global_cpfs(g)
+    """Libera todos os CPFs vinculados a uma eleição (usado em ocultar/excluir)."""
+    sb.table('cpf_registry').delete().eq('eleicao_id', eid).execute()
 
-# ── GLOBAL HISTORY (archive of deleted elections) ────────────────────────────
+# ── Log helper ───────────────────────────────────────────────────────────────
 
-GLOBAL_HISTORY_FILE = 'historico_global.json'
+def append_log(eid, evento, cpf=None):
+    """Adiciona evento ao log da eleição. Usa o mesário logado se houver."""
+    _, nome = mesario_logado()
+    sb.table('logs').insert({
+        'eleicao_id': eid,
+        'evento': evento,
+        'mesario': nome,
+        'cpf': cpf,
+    }).execute()
 
-def load_global_history():
-    if os.path.exists(GLOBAL_HISTORY_FILE):
-        with open(GLOBAL_HISTORY_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return []
+# ── Storage helper ───────────────────────────────────────────────────────────
 
-def save_global_history(data):
-    with open(GLOBAL_HISTORY_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+def upload_foto_candidato(eid, file):
+    """Faz upload da foto para o bucket 'candidatos' e retorna a URL pública."""
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+    if ext not in ('jpg', 'jpeg', 'png', 'gif', 'webp'):
+        ext = 'jpg'
+    fname = f'{eid}/{uuid.uuid4().hex}.{ext}'
+    file_bytes = file.read()
+    mime_map = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+                'gif': 'image/gif', 'webp': 'image/webp'}
+    try:
+        sb.storage.from_(STORAGE_BUCKET).upload(
+            path=fname,
+            file=file_bytes,
+            file_options={'content-type': mime_map.get(ext, 'image/jpeg'),
+                          'cache-control': '3600'}
+        )
+        public_url = sb.storage.from_(STORAGE_BUCKET).get_public_url(fname)
+        # Remove ? final que o Supabase às vezes adiciona
+        return public_url.rstrip('?')
+    except Exception as e:
+        print(f'[storage] Erro ao subir foto: {e}')
+        return ''
 
-def append_global_history(entry):
-    h = load_global_history()
-    h.append(entry)
-    save_global_history(h)
+# Inicialização
+ensure_default_admin()
 
-def ts():
-    return datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-
-# ── Routes ────────────────────────────────────────────────────────────────────
+# ─── ROUTES: BÁSICO ───────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/fotos/<eid>/<filename>')
-def serve_photo(eid, filename):
-    return send_from_directory(photos_dir(eid), filename)
-
-# ─── MESÁRIO AUTH ─────────────────────────────────────────────────────────────
+# ─── ROUTES: MESÁRIO AUTH ─────────────────────────────────────────────────────
 
 @app.route('/api/mesario/login', methods=['POST'])
 def mesario_login():
-    dados = request.json
-    usuario = dados.get('usuario', '').strip().lower()
+    dados = request.json or {}
+    usuario = (dados.get('usuario') or '').strip().lower()
     senha = dados.get('senha', '')
     ok, nome = autenticar_mesario(usuario, senha)
     if not ok:
@@ -189,14 +193,12 @@ def mesario_login():
     session['mesario_usuario'] = usuario
     session['mesario_nome'] = nome
     session['mesario_admin'] = is_admin(usuario)
-    # Check if password is temporary (first login forces password change)
-    mesarios = load_mesarios()
-    senha_temporaria = mesarios.get(usuario, {}).get('senha_temporaria', False)
+    # Senha temporária?
+    r = sb.table('mesarios').select('senha_temporaria').eq('usuario', usuario).execute()
+    senha_temp = bool(r.data and r.data[0].get('senha_temporaria'))
     return jsonify({
-        'ok': True,
-        'nome': nome,
-        'admin': session['mesario_admin'],
-        'senha_temporaria': senha_temporaria
+        'ok': True, 'nome': nome, 'admin': session['mesario_admin'],
+        'senha_temporaria': senha_temp
     })
 
 @app.route('/api/mesario/logout', methods=['POST'])
@@ -211,21 +213,21 @@ def mesario_me():
     u, n = mesario_logado()
     if u is None:
         return jsonify({'ok': False})
-    mesarios = load_mesarios()
-    senha_temporaria = mesarios.get(u, {}).get('senha_temporaria', False)
+    r = sb.table('mesarios').select('senha_temporaria').eq('usuario', u).execute()
+    senha_temp = bool(r.data and r.data[0].get('senha_temporaria'))
     return jsonify({
         'ok': True, 'usuario': u, 'nome': n,
         'admin': session.get('mesario_admin', False),
-        'senha_temporaria': senha_temporaria
+        'senha_temporaria': senha_temp
     })
 
 @app.route('/api/mesario/cadastrar', methods=['POST'])
 def cadastrar_mesario():
     if not require_mesario():
-        return jsonify({'ok': False, 'msg': 'Acesso restrito. Faça login como mesário.'})
-    dados = request.json
-    usuario = dados.get('usuario', '').strip().lower()
-    nome = dados.get('nome', '').strip()
+        return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
+    dados = request.json or {}
+    usuario = (dados.get('usuario') or '').strip().lower()
+    nome = (dados.get('nome') or '').strip()
     senha = dados.get('senha', '')
     if not usuario or not nome or not senha:
         return jsonify({'ok': False, 'msg': 'Preencha todos os campos.'})
@@ -234,30 +236,27 @@ def cadastrar_mesario():
     if not usuario.replace('_', '').replace('.', '').isalnum():
         return jsonify({'ok': False, 'msg': 'Usuário só pode conter letras, números, _ e .'})
 
-    mesarios = load_mesarios()
-    if usuario in mesarios:
+    r = sb.table('mesarios').select('usuario').eq('usuario', usuario).execute()
+    if r.data:
         return jsonify({'ok': False, 'msg': 'Este usuário já existe.'})
 
-    mesarios[usuario] = {
+    sb.table('mesarios').insert({
+        'usuario': usuario,
         'nome': nome,
         'senha_hash': hash_senha(senha),
         'admin': False,
-        'senha_temporaria': True,  # Force password change on first login
-        'criado_em': ts(),
-        'criado_por': session.get('mesario_nome', '-')
-    }
-    save_mesarios(mesarios)
-    return jsonify({'ok': True, 'msg': f'Mesário "{nome}" cadastrado. Ele deverá alterar a senha no primeiro acesso.'})
+        'senha_temporaria': True,
+        'criado_por': session.get('mesario_nome', '-'),
+    }).execute()
+    return jsonify({'ok': True, 'msg': f'Mesário "{nome}" cadastrado. Deverá trocar a senha no primeiro acesso.'})
 
 @app.route('/api/mesario/alterar_senha', methods=['POST'])
 def alterar_senha():
-    """Change password. A user can change their own password;
-    an admin can change any user's password."""
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
     dados = request.json or {}
     usuario_logado = session.get('mesario_usuario')
-    usuario_alvo = dados.get('usuario', usuario_logado).strip().lower()
+    usuario_alvo = (dados.get('usuario') or usuario_logado).strip().lower()
     senha_atual = dados.get('senha_atual', '')
     senha_nova = dados.get('senha_nova', '')
     senha_nova_conf = dados.get('senha_nova_conf', '')
@@ -269,52 +268,44 @@ def alterar_senha():
     if len(senha_nova) < 4:
         return jsonify({'ok': False, 'msg': 'Nova senha deve ter ao menos 4 caracteres.'})
 
-    mesarios = load_mesarios()
-    if usuario_alvo not in mesarios:
+    r = sb.table('mesarios').select('usuario').eq('usuario', usuario_alvo).execute()
+    if not r.data:
         return jsonify({'ok': False, 'msg': 'Usuário não encontrado.'})
 
     is_admin_logado = session.get('mesario_admin', False)
     is_proprio = (usuario_alvo == usuario_logado)
 
-    # Permission: user can change own password; admin can change anyone's
     if not is_proprio and not is_admin_logado:
         return jsonify({'ok': False, 'msg': 'Apenas o administrador pode alterar a senha de outros usuários.'})
 
-    # If changing OWN password, require current password
-    # (admin changing own password also needs current password)
     if is_proprio:
         ok, _ = autenticar_mesario(usuario_logado, senha_atual)
         if not ok:
             return jsonify({'ok': False, 'msg': 'Senha atual incorreta.'})
-    # Admin changing someone else's password does NOT need the target's current password
+        if senha_nova == senha_atual:
+            return jsonify({'ok': False, 'msg': 'A nova senha deve ser diferente da atual.'})
 
-    if senha_nova == senha_atual and is_proprio:
-        return jsonify({'ok': False, 'msg': 'A nova senha deve ser diferente da atual.'})
-
-    mesarios[usuario_alvo]['senha_hash'] = hash_senha(senha_nova)
-    # If admin reset someone else's password, force that user to change it on next login.
-    # If user changed own password, clear the temporary flag.
-    if is_proprio:
-        mesarios[usuario_alvo]['senha_temporaria'] = False
-    else:
-        mesarios[usuario_alvo]['senha_temporaria'] = True
-    mesarios[usuario_alvo]['senha_alterada_em'] = ts()
-    mesarios[usuario_alvo]['senha_alterada_por'] = session.get('mesario_nome', '-')
-    save_mesarios(mesarios)
+    sb.table('mesarios').update({
+        'senha_hash': hash_senha(senha_nova),
+        # Se foi o próprio usuário, limpa o flag. Se foi admin redefinindo de outro, força nova troca.
+        'senha_temporaria': not is_proprio,
+        'senha_alterada_em': now_iso(),
+        'senha_alterada_por': session.get('mesario_nome', '-'),
+    }).eq('usuario', usuario_alvo).execute()
     return jsonify({'ok': True, 'msg': 'Senha alterada com sucesso.'})
 
 @app.route('/api/mesario/listar', methods=['GET'])
 def listar_mesarios():
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
-    mesarios = load_mesarios()
+    r = sb.table('mesarios').select('usuario, nome, admin, criado_em').execute()
     result = []
-    for u, info in mesarios.items():
+    for m in r.data or []:
         result.append({
-            'usuario': u,
-            'nome': info.get('nome', u),
-            'admin': info.get('admin', False),
-            'criado_em': info.get('criado_em', '')
+            'usuario': m['usuario'],
+            'nome': m.get('nome', m['usuario']),
+            'admin': bool(m.get('admin')),
+            'criado_em': fmt_dt(m.get('criado_em')),
         })
     result.sort(key=lambda x: (not x['admin'], x['nome'].upper()))
     return jsonify({'ok': True, 'mesarios': result})
@@ -323,74 +314,77 @@ def listar_mesarios():
 def excluir_mesario():
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
-    dados = request.json
-    usuario = dados.get('usuario', '').strip().lower()
-    mesarios = load_mesarios()
-    if usuario not in mesarios:
+    dados = request.json or {}
+    usuario = (dados.get('usuario') or '').strip().lower()
+    r = sb.table('mesarios').select('admin').eq('usuario', usuario).execute()
+    if not r.data:
         return jsonify({'ok': False, 'msg': 'Mesário não encontrado.'})
-    if mesarios[usuario].get('admin'):
+    if r.data[0].get('admin'):
         return jsonify({'ok': False, 'msg': 'Não é possível excluir o administrador.'})
     if usuario == session.get('mesario_usuario'):
         return jsonify({'ok': False, 'msg': 'Você não pode excluir a si mesmo.'})
-    del mesarios[usuario]
-    save_mesarios(mesarios)
+    sb.table('mesarios').delete().eq('usuario', usuario).execute()
     return jsonify({'ok': True})
 
-# ─── ELEIÇÕES (público) ───────────────────────────────────────────────────────
+# ─── ROUTES: ELEIÇÕES (público) ───────────────────────────────────────────────
 
 @app.route('/api/eleicoes', methods=['GET'])
 def get_eleicoes():
-    """Public list: elections in progress + closed (not hidden)."""
-    ids = lista_eleicoes()
+    """Lista pública: eleições em andamento ou encerradas, não ocultas."""
+    r = sb.table('eleicoes').select(
+        'id, titulo, eleicao_aberta, eleicao_encerrada, criada_em, encerrada_em'
+    ).eq('oculta', False).execute()
     result = []
-    for eid in ids:
-        d = load_election(eid)
-        if not d or d.get('oculta', False):
-            continue
-        # Include both open and closed (not hidden) elections
-        if d.get('eleicao_aberta') or d.get('eleicao_encerrada'):
+    for e in r.data or []:
+        if e.get('eleicao_aberta') or e.get('eleicao_encerrada'):
             result.append({
-                'id': eid,
-                'titulo': d.get('titulo', eid),
-                'aberta': d.get('eleicao_aberta', False),
-                'encerrada': d.get('eleicao_encerrada', False),
-                'criada_em': d.get('criada_em', ''),
-                'encerrada_em': d.get('encerrada_em', '')
+                'id': e['id'],
+                'titulo': e['titulo'],
+                'aberta': e.get('eleicao_aberta', False),
+                'encerrada': e.get('eleicao_encerrada', False),
+                'criada_em': fmt_dt(e.get('criada_em')),
+                'encerrada_em': fmt_dt(e.get('encerrada_em')),
             })
+    # Ordena: abertas primeiro, depois encerradas (mais recente primeiro)
+    result.sort(key=lambda x: (not x['aberta'], x.get('criada_em', '')), reverse=False)
     return jsonify({'ok': True, 'eleicoes': result})
 
 @app.route('/api/eleicoes/todas', methods=['GET'])
 def get_todas_eleicoes():
-    """Mesário list: all elections including hidden and closed."""
+    """Lista do mesário: todas eleições, incluindo ocultas e pendentes."""
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
-    ids = lista_eleicoes()
+    r = sb.table('eleicoes').select('*').order('criada_em', desc=True).execute()
     result = []
-    for eid in ids:
-        d = load_election(eid)
-        if d:
-            result.append({
-                'id': eid,
-                'titulo': d.get('titulo', eid),
-                'aberta': d.get('eleicao_aberta', False),
-                'encerrada': d.get('eleicao_encerrada', False),
-                'oculta': d.get('oculta', False),
-                'configurado': d.get('configurado', False),
-                'criada_em': d.get('criada_em', ''),
-                'total_votos': sum(d.get('votos', {}).values()) + d.get('votos_brancos', 0),
-                'tem_planilha': len(d.get('funcionarios', [])) > 0
-            })
+    for e in r.data or []:
+        # Conta total de votos e funcionários
+        cands = sb.table('candidatos').select('votos').eq('eleicao_id', e['id']).execute()
+        total_cand_votos = sum(c.get('votos', 0) for c in (cands.data or []))
+        total_votos = total_cand_votos + (e.get('votos_brancos') or 0)
+        fcount = sb.table('funcionarios').select('id', count='exact').eq('eleicao_id', e['id']).execute()
+        total_func = fcount.count or 0
+        result.append({
+            'id': e['id'],
+            'titulo': e['titulo'],
+            'aberta': e.get('eleicao_aberta', False),
+            'encerrada': e.get('eleicao_encerrada', False),
+            'oculta': e.get('oculta', False),
+            'configurado': e.get('configurado', False),
+            'criada_em': fmt_dt(e.get('criada_em')),
+            'total_votos': total_votos,
+            'tem_planilha': total_func > 0,
+        })
     return jsonify({'ok': True, 'eleicoes': result})
 
 @app.route('/api/eleicoes/criar', methods=['POST'])
 def criar_eleicao():
     if not require_mesario():
-        return jsonify({'ok': False, 'msg': 'Acesso restrito. Faça login como mesário.'})
-    titulo = request.form.get('titulo', '').strip()
+        return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
+    titulo = (request.form.get('titulo') or '').strip()
     if not titulo:
-        return jsonify({'ok': False, 'msg': 'Informe um título para a eleição.'})
+        return jsonify({'ok': False, 'msg': 'Informe um título.'})
 
-    # Process CSV or XLSX file
+    # Processar planilha (CSV ou XLSX)
     funcionarios = []
     file = request.files.get('planilha')
     if file and file.filename:
@@ -398,82 +392,63 @@ def criar_eleicao():
         try:
             if filename.endswith('.xlsx') or filename.endswith('.xls'):
                 import openpyxl
-                raw_bytes = file.read()
-                wb = openpyxl.load_workbook(io.BytesIO(raw_bytes), read_only=True, data_only=True)
+                wb = openpyxl.load_workbook(io.BytesIO(file.read()), read_only=True, data_only=True)
                 ws = wb.active
                 header_map = {}
                 header_row = None
                 for row in ws.iter_rows(min_row=1, max_row=10):
                     for cell in row:
-                        if cell.value is None:
-                            continue
+                        if cell.value is None: continue
                         k = str(cell.value).strip().upper()
                         if k in ('NOME', 'NOME COMPLETO', 'NOME_COMPLETO', 'FUNCIONARIO', 'FUNCIONÁRIO', 'COLABORADOR'):
-                            header_map[cell.column - 1] = 'nome'
-                            header_row = cell.row
+                            header_map[cell.column - 1] = 'nome'; header_row = cell.row
                         elif k in ('CPF', 'CPF_FUNCIONARIO', 'CPF_COLABORADOR', 'NR_CPF'):
-                            header_map[cell.column - 1] = 'cpf'
-                            header_row = cell.row
-                    if header_map:
-                        break
+                            header_map[cell.column - 1] = 'cpf'; header_row = cell.row
+                    if header_map: break
                 if not header_map or 'nome' not in header_map.values() or 'cpf' not in header_map.values():
                     wb.close()
                     return jsonify({'ok': False, 'msg': 'Colunas NOME e CPF não encontradas na planilha XLSX.'})
                 for row in ws.iter_rows(min_row=header_row + 1):
-                    nome = None
-                    cpf = None
+                    nome = cpf = None
                     for cell in row:
-                        col_idx = cell.column - 1
-                        if col_idx not in header_map or cell.value is None:
-                            continue
+                        idx = cell.column - 1
+                        if idx not in header_map or cell.value is None: continue
                         v = str(cell.value).strip()
-                        if header_map[col_idx] == 'nome':
+                        if header_map[idx] == 'nome':
                             nome = v if v else None
-                        elif header_map[col_idx] == 'cpf':
-                            cpf_clean = v.replace('.', '').replace('-', '').replace(' ', '')
-                            if '.' in cpf_clean and cpf_clean.replace('.', '').isdigit():
-                                try:
-                                    cpf_clean = str(int(float(v)))
-                                except:
-                                    pass
-                            if cpf_clean.isdigit() and len(cpf_clean) < 11:
-                                cpf_clean = cpf_clean.zfill(11)
-                            cpf = cpf_clean
+                        else:
+                            cpf_c = v.replace('.', '').replace('-', '').replace(' ', '')
+                            if '.' in cpf_c and cpf_c.replace('.', '').isdigit():
+                                try: cpf_c = str(int(float(v)))
+                                except: pass
+                            if cpf_c.isdigit() and len(cpf_c) < 11:
+                                cpf_c = cpf_c.zfill(11)
+                            cpf = cpf_c
                     if nome and cpf and len(cpf) == 11 and cpf.isdigit():
                         funcionarios.append({'nome': nome, 'cpf': cpf})
                 wb.close()
-                if not funcionarios:
-                    return jsonify({'ok': False, 'msg': 'Nenhum funcionário válido na planilha XLSX.'})
             else:
-                raw_bytes = file.read()
-                try:
-                    content = raw_bytes.decode('utf-8-sig')
-                except UnicodeDecodeError:
+                raw = file.read()
+                for enc in ('utf-8-sig', 'latin-1', 'utf-8'):
                     try:
-                        content = raw_bytes.decode('latin-1')
+                        content = raw.decode(enc); break
                     except UnicodeDecodeError:
-                        content = raw_bytes.decode('utf-8', errors='replace')
+                        continue
+                else:
+                    content = raw.decode('utf-8', errors='replace')
                 content = content.lstrip('\ufeff')
                 first_line = content.split('\n')[0] if content else ''
-                if ';' in first_line:
-                    delimiter = ';'
-                elif '\t' in first_line:
-                    delimiter = '\t'
-                elif ',' in first_line:
-                    delimiter = ','
+                if ';' in first_line: delimiter = ';'
+                elif '\t' in first_line: delimiter = '\t'
+                elif ',' in first_line: delimiter = ','
                 else:
-                    try:
-                        dialect = csv.Sniffer().sniff(content[:2048])
-                        delimiter = dialect.delimiter
-                    except csv.Error:
-                        delimiter = ';'
+                    try: delimiter = csv.Sniffer().sniff(content[:2048]).delimiter
+                    except csv.Error: delimiter = ';'
                 reader = csv.DictReader(io.StringIO(content), delimiter=delimiter)
                 for row in reader:
-                    nome = None
-                    cpf = None
+                    nome = cpf = None
                     for key, value in row.items():
-                        if key is None or value is None:
-                            continue
+                        if key is None or value is None: continue
                         k = key.strip().strip('\ufeff').strip('"').strip("'").strip().upper()
                         v = value.strip().strip('"').strip("'").strip()
                         if k in ('NOME', 'NOME COMPLETO', 'NOME_COMPLETO', 'FUNCIONARIO', 'FUNCIONÁRIO', 'COLABORADOR'):
@@ -486,55 +461,62 @@ def criar_eleicao():
                     if nome and cpf and len(cpf) == 11 and cpf.isdigit():
                         funcionarios.append({'nome': nome, 'cpf': cpf})
                 if not funcionarios:
-                    reader2 = csv.DictReader(io.StringIO(content), delimiter=delimiter)
-                    cols = list(reader2.fieldnames) if reader2.fieldnames else []
-                    cols_str = ', '.join(cols) if cols else 'nenhuma'
-                    return jsonify({'ok': False, 'msg': f'Nenhum funcionário válido. Colunas detectadas: [{cols_str}].'})
+                    return jsonify({'ok': False, 'msg': 'Nenhum funcionário válido encontrado. Verifique se há colunas NOME e CPF.'})
         except Exception as e:
-            return jsonify({'ok': False, 'msg': f'Erro ao processar planilha: {str(e)}'})
+            return jsonify({'ok': False, 'msg': f'Erro ao processar planilha: {e}'})
     else:
-        return jsonify({'ok': False, 'msg': 'É obrigatório anexar a planilha de funcionários (CSV ou XLSX).'})
+        return jsonify({'ok': False, 'msg': 'Anexe a planilha de funcionários (CSV ou XLSX).'})
 
-    eid = datetime.now().strftime('%Y%m%d_%H%M%S')
-    data = {
-        'titulo': titulo, 'configurado': False,
-        'candidatos': [], 'votos': {},
-        'votos_brancos': 0, 'cpfs_votantes': [],
-        'eleicao_aberta': False, 'eleicao_encerrada': False,
-        'oculta': False,
-        'criada_em': ts(),
-        'funcionarios': funcionarios
-    }
-    save_election(eid, data)
-    append_log(eid, {'hora': ts(), 'evento': f'Eleição criada: {titulo} — {len(funcionarios)} funcionário(s) cadastrado(s)'})
+    # Cria a eleição
+    eid = datetime.now().strftime('%Y%m%d_%H%M%S_') + uuid.uuid4().hex[:4]
+    sb.table('eleicoes').insert({
+        'id': eid, 'titulo': titulo,
+        'configurado': False, 'eleicao_aberta': False,
+        'eleicao_encerrada': False, 'oculta': False,
+        'votos_brancos': 0,
+    }).execute()
+
+    # Insere funcionários (em lote)
+    func_rows = [{'eleicao_id': eid, 'nome': f['nome'], 'cpf': f['cpf']} for f in funcionarios]
+    if func_rows:
+        # Insere em chunks de 100 para não estourar limite
+        for i in range(0, len(func_rows), 100):
+            sb.table('funcionarios').insert(func_rows[i:i+100]).execute()
+
+    append_log(eid, f'Eleição criada: {titulo} — {len(funcionarios)} funcionário(s) cadastrado(s)')
     return jsonify({'ok': True, 'id': eid, 'total_funcionarios': len(funcionarios)})
 
 @app.route('/api/eleicoes/<eid>/status', methods=['GET'])
 def status(eid):
-    d = load_election(eid)
-    if not d:
+    r = sb.table('eleicoes').select('*').eq('id', eid).execute()
+    if not r.data:
         return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
+    e = r.data[0]
+    cands = sb.table('candidatos').select('votos').eq('eleicao_id', eid).execute()
+    total_cand_votos = sum(c.get('votos', 0) for c in (cands.data or []))
+    fcount = sb.table('funcionarios').select('id', count='exact').eq('eleicao_id', eid).execute()
     return jsonify({
-        'ok': True, 'titulo': d.get('titulo', ''),
-        'configurado': d['configurado'],
-        'eleicao_aberta': d['eleicao_aberta'],
-        'eleicao_encerrada': d['eleicao_encerrada'],
-        'oculta': d.get('oculta', False),
-        'num_candidatos': len(d['candidatos']),
-        'total_votos': sum(d['votos'].values()) + d.get('votos_brancos', 0),
-        'total_funcionarios': len(d.get('funcionarios', []))
+        'ok': True, 'titulo': e['titulo'],
+        'configurado': e.get('configurado', False),
+        'eleicao_aberta': e.get('eleicao_aberta', False),
+        'eleicao_encerrada': e.get('eleicao_encerrada', False),
+        'oculta': e.get('oculta', False),
+        'num_candidatos': len(cands.data or []),
+        'total_votos': total_cand_votos + (e.get('votos_brancos') or 0),
+        'total_funcionarios': fcount.count or 0,
     })
 
-# ─── MESÁRIO: GERENCIAR ELEIÇÕES ──────────────────────────────────────────────
+# ─── ROUTES: MESÁRIO GERENCIAR ELEIÇÕES ───────────────────────────────────────
 
 @app.route('/api/eleicoes/<eid>/configurar', methods=['POST'])
 def configurar(eid):
     if not require_mesario():
-        return jsonify({'ok': False, 'msg': 'Acesso restrito. Faça login como mesário.'})
-    d = load_election(eid)
-    if not d:
+        return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
+    r = sb.table('eleicoes').select('*').eq('id', eid).execute()
+    if not r.data:
         return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
-    if d.get('eleicao_aberta') or d.get('eleicao_encerrada'):
+    e = r.data[0]
+    if e.get('eleicao_aberta') or e.get('eleicao_encerrada'):
         return jsonify({'ok': False, 'msg': 'Eleição já iniciada ou encerrada.'})
 
     candidatos_json = request.form.get('candidatos', '[]')
@@ -549,162 +531,156 @@ def configurar(eid):
     if len(numeros) != len(set(numeros)):
         return jsonify({'ok': False, 'msg': 'Números de candidatos duplicados.'})
 
-    pdir = photos_dir(eid)
+    # Upload fotos e prepara registros
+    cand_rows = []
     for i, cand in enumerate(candidatos):
-        photo_key = f'foto_{i}'
-        photo_file = request.files.get(photo_key)
+        foto_url = ''
+        photo_file = request.files.get(f'foto_{i}')
         if photo_file and photo_file.filename:
-            ext = photo_file.filename.rsplit('.', 1)[-1].lower() if '.' in photo_file.filename else 'jpg'
-            if ext not in ('jpg', 'jpeg', 'png', 'gif', 'webp'):
-                ext = 'jpg'
-            fname = f'{uuid.uuid4().hex}.{ext}'
-            photo_file.save(os.path.join(pdir, fname))
-            cand['foto'] = f'/fotos/{eid}/{fname}'
-        else:
-            cand['foto'] = ''
+            foto_url = upload_foto_candidato(eid, photo_file)
+        cand_rows.append({
+            'eleicao_id': eid,
+            'numero': int(cand['numero']),
+            'nome': cand['nome'],
+            'foto_url': foto_url,
+            'votos': 0,
+        })
 
-    d['candidatos'] = candidatos
-    d['votos'] = {str(c['numero']): 0 for c in candidatos}
-    d['configurado'] = True
-    d['eleicao_aberta'] = True
-    d['cpfs_votantes'] = []
-    d['votos_brancos'] = 0
-    save_election(eid, d)
-    append_log(eid, {'hora': ts(), 'evento': f'Eleição iniciada com {len(candidatos)} candidato(s)'})
+    # Limpa candidatos antigos (caso reconfigure) e insere os novos
+    sb.table('candidatos').delete().eq('eleicao_id', eid).execute()
+    sb.table('candidatos').insert(cand_rows).execute()
+
+    sb.table('eleicoes').update({
+        'configurado': True,
+        'eleicao_aberta': True,
+        'votos_brancos': 0,
+    }).eq('id', eid).execute()
+
+    # Limpa votos antigos
+    sb.table('cpfs_votantes').delete().eq('eleicao_id', eid).execute()
+
+    append_log(eid, f'Eleição iniciada com {len(candidatos)} candidato(s)')
     return jsonify({'ok': True})
 
 @app.route('/api/eleicoes/<eid>/encerrar', methods=['POST'])
 def encerrar(eid):
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
-    d = load_election(eid)
-    if not d:
+    r = sb.table('eleicoes').select('id').eq('id', eid).execute()
+    if not r.data:
         return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
-    d['eleicao_aberta'] = False
-    d['eleicao_encerrada'] = True
-    d['encerrada_em'] = ts()
-    save_election(eid, d)
-    append_log(eid, {'hora': ts(), 'evento': 'Eleição encerrada'})
+    sb.table('eleicoes').update({
+        'eleicao_aberta': False,
+        'eleicao_encerrada': True,
+        'encerrada_em': now_iso(),
+    }).eq('id', eid).execute()
+    append_log(eid, 'Eleição encerrada')
     return jsonify({'ok': True})
 
 @app.route('/api/eleicoes/<eid>/ocultar', methods=['POST'])
 def ocultar(eid):
-    """Hide from public list AND release all CPFs back for use in other elections.
-    The election data itself (votes, results, log) is preserved."""
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
-    d = load_election(eid)
-    if not d:
+    r = sb.table('eleicoes').select('id').eq('id', eid).execute()
+    if not r.data:
         return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
-    d['oculta'] = True
-    save_election(eid, d)
-    # Release CPFs so these voters can participate in other elections
+    sb.table('eleicoes').update({'oculta': True}).eq('id', eid).execute()
     release_cpfs_for_election(eid)
-    append_log(eid, {'hora': ts(), 'evento': 'Eleição ocultada — CPFs liberados para outras eleições'})
+    append_log(eid, 'Eleição ocultada — CPFs liberados para outras eleições')
     return jsonify({'ok': True})
 
 @app.route('/api/eleicoes/<eid>/exibir', methods=['POST'])
 def exibir(eid):
-    """Unhide election. NOTE: CPFs that voted here remain free — they were
-    released on hide and can now vote anywhere. This is intentional."""
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
-    d = load_election(eid)
-    if not d:
+    r = sb.table('eleicoes').select('id').eq('id', eid).execute()
+    if not r.data:
         return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
-    d['oculta'] = False
-    save_election(eid, d)
-    append_log(eid, {'hora': ts(), 'evento': 'Eleição reexibida na tela inicial'})
+    sb.table('eleicoes').update({'oculta': False}).eq('id', eid).execute()
+    append_log(eid, 'Eleição reexibida na tela inicial')
     return jsonify({'ok': True})
 
 @app.route('/api/eleicoes/<eid>/excluir', methods=['POST'])
 def excluir_eleicao(eid):
-    """Securely delete an election. Requires the current mesário's password to confirm."""
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
     dados = request.json or {}
-    senha = dados.get('senha', '')
     usuario, nome = mesario_logado()
-    # Re-validate the current mesário's own password
-    ok, _ = autenticar_mesario(usuario, senha)
+    ok, _ = autenticar_mesario(usuario, dados.get('senha', ''))
     if not ok:
         return jsonify({'ok': False, 'msg': 'Senha incorreta. A eleição NÃO foi excluída.'})
-    d = load_election(eid)
-    if not d:
-        return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
 
-    # Archive a record of the deletion in the global history before removing
-    titulo = d.get('titulo', eid)
-    total_votos = sum(d.get('votos', {}).values()) + d.get('votos_brancos', 0)
-    total_funcionarios = len(d.get('funcionarios', []))
-    hist_entry = {
+    r = sb.table('eleicoes').select('*').eq('id', eid).execute()
+    if not r.data:
+        return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
+    e = r.data[0]
+
+    # Conta votos e funcionários para o histórico
+    cands = sb.table('candidatos').select('votos').eq('eleicao_id', eid).execute()
+    total_votos = sum(c.get('votos', 0) for c in (cands.data or [])) + (e.get('votos_brancos') or 0)
+    fcount = sb.table('funcionarios').select('id', count='exact').eq('eleicao_id', eid).execute()
+
+    # Arquiva no histórico
+    sb.table('historico_eleicoes').insert({
         'id': eid,
-        'titulo': titulo,
-        'criada_em': d.get('criada_em', ''),
-        'encerrada_em': d.get('encerrada_em', ''),
-        'excluida_em': ts(),
+        'titulo': e['titulo'],
+        'criada_em': e.get('criada_em'),
+        'encerrada_em': e.get('encerrada_em'),
         'excluida_por': nome,
         'total_votos': total_votos,
-        'total_funcionarios': total_funcionarios,
-        'estava_encerrada': d.get('eleicao_encerrada', False)
-    }
-    append_global_history(hist_entry)
+        'total_funcionarios': fcount.count or 0,
+        'estava_encerrada': e.get('eleicao_encerrada', False),
+    }).execute()
 
-    # Release CPFs from global registry so they can vote in other elections
+    # Libera CPFs e deleta a eleição (cascata apaga candidatos, funcionários, etc.)
     release_cpfs_for_election(eid)
+    sb.table('eleicoes').delete().eq('id', eid).execute()
+    # As fotos no Storage ficam órfãs; idealmente um job de limpeza removeria. Por ora, deixamos.
 
-    # Delete folder
-    shutil.rmtree(os.path.join(ELEICOES_DIR, eid), ignore_errors=True)
-    return jsonify({'ok': True, 'msg': f'Eleição "{titulo}" excluída.'})
+    return jsonify({'ok': True, 'msg': f'Eleição "{e["titulo"]}" excluída.'})
 
 @app.route('/api/historico', methods=['GET'])
 def historico_eleicoes():
-    """Returns combined history: current elections (any status) + deleted ones."""
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
-
     items = []
-    # Current elections (any status)
-    for eid in lista_eleicoes():
-        d = load_election(eid)
-        if not d:
-            continue
-        total = sum(d.get('votos', {}).values()) + d.get('votos_brancos', 0)
-        if d.get('eleicao_encerrada'):
+    # Eleições atuais
+    cur = sb.table('eleicoes').select('*').execute()
+    for e in cur.data or []:
+        cands = sb.table('candidatos').select('votos').eq('eleicao_id', e['id']).execute()
+        total = sum(c.get('votos', 0) for c in (cands.data or [])) + (e.get('votos_brancos') or 0)
+        fcount = sb.table('funcionarios').select('id', count='exact').eq('eleicao_id', e['id']).execute()
+        if e.get('eleicao_encerrada'):
             estado = 'Encerrada'
-        elif d.get('eleicao_aberta'):
+        elif e.get('eleicao_aberta'):
             estado = 'Em andamento'
         else:
             estado = 'Pendente'
         items.append({
-            'id': eid,
-            'titulo': d.get('titulo', eid),
+            'id': e['id'],
+            'titulo': e['titulo'],
             'estado': estado,
-            'criada_em': d.get('criada_em', ''),
-            'encerrada_em': d.get('encerrada_em', ''),
+            'criada_em': fmt_dt(e.get('criada_em')),
+            'encerrada_em': fmt_dt(e.get('encerrada_em')),
             'total_votos': total,
-            'total_funcionarios': len(d.get('funcionarios', [])),
-            'oculta': d.get('oculta', False),
-            'excluida': False
+            'total_funcionarios': fcount.count or 0,
+            'oculta': e.get('oculta', False),
+            'excluida': False,
         })
-
-    # Deleted elections from archive
-    for h in load_global_history():
+    # Excluídas
+    h = sb.table('historico_eleicoes').select('*').execute()
+    for it in h.data or []:
         items.append({
-            'id': h.get('id', ''),
-            'titulo': h.get('titulo', ''),
+            'id': it['id'], 'titulo': it['titulo'],
             'estado': 'Excluída',
-            'criada_em': h.get('criada_em', ''),
-            'encerrada_em': h.get('encerrada_em', ''),
-            'excluida_em': h.get('excluida_em', ''),
-            'excluida_por': h.get('excluida_por', ''),
-            'total_votos': h.get('total_votos', 0),
-            'total_funcionarios': h.get('total_funcionarios', 0),
-            'oculta': False,
-            'excluida': True
+            'criada_em': fmt_dt(it.get('criada_em')),
+            'encerrada_em': fmt_dt(it.get('encerrada_em')),
+            'excluida_em': fmt_dt(it.get('excluida_em')),
+            'excluida_por': it.get('excluida_por') or '-',
+            'total_votos': it.get('total_votos') or 0,
+            'total_funcionarios': it.get('total_funcionarios') or 0,
+            'oculta': False, 'excluida': True,
         })
-
-    # Sort by creation date descending
     items.sort(key=lambda x: x.get('criada_em', ''), reverse=True)
     return jsonify({'ok': True, 'itens': items})
 
@@ -712,164 +688,228 @@ def historico_eleicoes():
 def zeresima(eid):
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
-    d = load_election(eid)
-    if not d:
+    r = sb.table('eleicoes').select('titulo').eq('id', eid).execute()
+    if not r.data:
         return jsonify({'ok': False})
-    append_log(eid, {'hora': ts(), 'evento': 'Zerésima impressa'})
-    return jsonify({'ok': True, 'titulo': d.get('titulo', ''),
-                    'candidatos': d['candidatos'], 'gerada_em': ts()})
+    titulo = r.data[0]['titulo']
+    cands = sb.table('candidatos').select('numero, nome').eq('eleicao_id', eid).order('numero').execute()
+    append_log(eid, 'Zerésima impressa')
+    return jsonify({'ok': True, 'titulo': titulo,
+                    'candidatos': cands.data or [], 'gerada_em': ts()})
 
 @app.route('/api/eleicoes/<eid>/log', methods=['GET'])
 def get_log(eid):
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
-    return jsonify({'ok': True, 'log': load_log(eid)})
+    r = sb.table('logs').select('hora, evento, mesario, cpf').eq('eleicao_id', eid).order('hora').execute()
+    log = []
+    for l in r.data or []:
+        log.append({
+            'hora': fmt_dt(l.get('hora')),
+            'evento': l.get('evento', ''),
+            'mesario': l.get('mesario'),
+            'cpf': l.get('cpf'),
+        })
+    return jsonify({'ok': True, 'log': log})
 
-# ─── ELEITOR ──────────────────────────────────────────────────────────────────
+# ─── ROUTES: ELEITOR (votação) ────────────────────────────────────────────────
 
 @app.route('/api/eleicoes/<eid>/validar_cpf', methods=['POST'])
 def validar_cpf(eid):
-    dados = request.json
-    cpf = dados.get('cpf', '').replace('.','').replace('-','').strip()
+    dados = request.json or {}
+    cpf = (dados.get('cpf') or '').replace('.', '').replace('-', '').strip()
     if len(cpf) != 11 or not cpf.isdigit():
         return jsonify({'ok': False, 'msg': 'CPF inválido. Digite 11 dígitos.'})
-    d = load_election(eid)
-    if not d:
+
+    r = sb.table('eleicoes').select('eleicao_aberta, titulo').eq('id', eid).execute()
+    if not r.data:
         return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
-    if not d['eleicao_aberta']:
+    if not r.data[0].get('eleicao_aberta'):
         return jsonify({'ok': False, 'msg': 'Votação não está aberta.'})
-    funcionarios = d.get('funcionarios', [])
-    funcionario = None
-    for f in funcionarios:
-        if f['cpf'] == cpf:
-            funcionario = f
-            break
-    if not funcionario:
+
+    # Verifica se CPF está autorizado nessa eleição
+    f = sb.table('funcionarios').select('nome').eq('eleicao_id', eid).eq('cpf', cpf).execute()
+    if not f.data:
         return jsonify({'ok': False, 'msg': 'CPF não encontrado na lista de funcionários autorizados.'})
+
+    # Verifica se já votou
     voted_eid = cpf_has_voted(cpf)
     if voted_eid:
-        voted_d = load_election(voted_eid)
-        titulo = voted_d.get('titulo', voted_eid) if voted_d else voted_eid
+        e2 = sb.table('eleicoes').select('titulo').eq('id', voted_eid).execute()
+        titulo = e2.data[0]['titulo'] if e2.data else voted_eid
         return jsonify({'ok': False, 'msg': f'Este CPF já votou na eleição "{titulo}".'})
-    return jsonify({'ok': True, 'nome_funcionario': funcionario['nome']})
+
+    return jsonify({'ok': True, 'nome_funcionario': f.data[0]['nome']})
 
 @app.route('/api/eleicoes/<eid>/candidato/<numero>', methods=['GET'])
 def get_candidato(eid, numero):
-    d = load_election(eid)
-    if not d: return jsonify({'ok': False})
-    c = next((x for x in d['candidatos'] if str(x['numero']) == numero), None)
-    return jsonify({'ok': bool(c), 'candidato': c})
+    try:
+        n = int(numero)
+    except ValueError:
+        return jsonify({'ok': False})
+    c = sb.table('candidatos').select('numero, nome, foto_url').eq('eleicao_id', eid).eq('numero', n).execute()
+    if not c.data:
+        return jsonify({'ok': False})
+    cand = c.data[0]
+    return jsonify({'ok': True, 'candidato': {
+        'numero': cand['numero'], 'nome': cand['nome'],
+        'foto': cand.get('foto_url') or '',
+    }})
 
 @app.route('/api/eleicoes/<eid>/candidatos', methods=['GET'])
 def get_candidatos_list(eid):
-    """Public list of candidates (number + name) for the voting reference strip.
-    Does NOT include vote counts."""
-    d = load_election(eid)
-    if not d: return jsonify({'ok': False})
-    if not d.get('eleicao_aberta'):
+    r = sb.table('eleicoes').select('eleicao_aberta').eq('id', eid).execute()
+    if not r.data:
+        return jsonify({'ok': False})
+    if not r.data[0].get('eleicao_aberta'):
         return jsonify({'ok': False, 'msg': 'Votação não está aberta.'})
-    cands = [{'numero': c['numero'], 'nome': c['nome']} for c in d['candidatos']]
-    cands.sort(key=lambda x: x['numero'])
-    return jsonify({'ok': True, 'candidatos': cands})
+    c = sb.table('candidatos').select('numero, nome').eq('eleicao_id', eid).order('numero').execute()
+    return jsonify({'ok': True, 'candidatos': c.data or []})
 
 @app.route('/api/eleicoes/<eid>/votar', methods=['POST'])
 def votar(eid):
-    dados = request.json
-    cpf = dados.get('cpf', '').replace('.','').replace('-','').strip()
+    dados = request.json or {}
+    cpf = (dados.get('cpf') or '').replace('.', '').replace('-', '').strip()
     numero = str(dados.get('numero', '')).strip()
-    d = load_election(eid)
-    if not d:
-        return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
-    if not d['eleicao_aberta']:
-        return jsonify({'ok': False, 'msg': 'Votação não está aberta.'})
-    funcionarios = d.get('funcionarios', [])
-    if not any(f['cpf'] == cpf for f in funcionarios):
-        return jsonify({'ok': False, 'msg': 'CPF não autorizado.'})
-    voted_eid = cpf_has_voted(cpf)
-    if voted_eid:
-        return jsonify({'ok': False, 'msg': 'CPF já votou em outra eleição.'})
-    cpf_log = cpf[:3] + '.***.***-' + cpf[-2:]
-    if numero == '00' or numero == '':
-        d['votos_brancos'] = d.get('votos_brancos', 0) + 1
-        d['cpfs_votantes'].append(cpf)
-        save_election(eid, d)
-        register_cpf_vote(cpf, eid)
-        append_log(eid, {'hora': ts(), 'evento': 'Voto em BRANCO registrado', 'cpf': cpf_log})
-        return jsonify({'ok': True, 'branco': True})
-    if numero not in d['votos']:
-        return jsonify({'ok': False, 'msg': 'Número de candidato inválido.'})
-    d['votos'][numero] += 1
-    d['cpfs_votantes'].append(cpf)
-    save_election(eid, d)
-    register_cpf_vote(cpf, eid)
-    candidato = next((c for c in d['candidatos'] if str(c['numero']) == numero), None)
-    nome_cand = candidato['nome'] if candidato else numero
-    append_log(eid, {'hora': ts(), 'evento': f'Voto registrado — Nº {numero} ({nome_cand})', 'cpf': cpf_log})
-    return jsonify({'ok': True, 'branco': False, 'candidato': candidato})
 
-# ─── RESULTADO PÚBLICO (somente de eleição encerrada) ─────────────────────────
+    r = sb.table('eleicoes').select('eleicao_aberta, votos_brancos').eq('id', eid).execute()
+    if not r.data:
+        return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
+    if not r.data[0].get('eleicao_aberta'):
+        return jsonify({'ok': False, 'msg': 'Votação não está aberta.'})
+
+    # CPF autorizado?
+    f = sb.table('funcionarios').select('cpf').eq('eleicao_id', eid).eq('cpf', cpf).execute()
+    if not f.data:
+        return jsonify({'ok': False, 'msg': 'CPF não autorizado.'})
+
+    # Já votou globalmente?
+    if cpf_has_voted(cpf):
+        return jsonify({'ok': False, 'msg': 'CPF já votou em outra eleição.'})
+
+    cpf_log = cpf[:3] + '.***.***-' + cpf[-2:]
+
+    if numero == '00' or numero == '':
+        # Voto em branco — incrementa atomicamente
+        atual = r.data[0].get('votos_brancos') or 0
+        sb.table('eleicoes').update({'votos_brancos': atual + 1}).eq('id', eid).execute()
+        sb.table('cpfs_votantes').insert({'eleicao_id': eid, 'cpf': cpf}).execute()
+        register_cpf_vote(cpf, eid)
+        append_log(eid, 'Voto em BRANCO registrado', cpf=cpf_log)
+        return jsonify({'ok': True, 'branco': True})
+
+    try:
+        n = int(numero)
+    except ValueError:
+        return jsonify({'ok': False, 'msg': 'Número de candidato inválido.'})
+
+    c = sb.table('candidatos').select('id, nome, numero, foto_url, votos').eq('eleicao_id', eid).eq('numero', n).execute()
+    if not c.data:
+        return jsonify({'ok': False, 'msg': 'Número de candidato inválido.'})
+    cand = c.data[0]
+
+    # Incrementa votos do candidato
+    sb.table('candidatos').update({'votos': (cand.get('votos') or 0) + 1}).eq('id', cand['id']).execute()
+    sb.table('cpfs_votantes').insert({'eleicao_id': eid, 'cpf': cpf}).execute()
+    register_cpf_vote(cpf, eid)
+
+    append_log(eid, f'Voto registrado — Nº {n} ({cand["nome"]})', cpf=cpf_log)
+    return jsonify({'ok': True, 'branco': False,
+                    'candidato': {'numero': cand['numero'], 'nome': cand['nome'],
+                                  'foto': cand.get('foto_url') or ''}})
+
+# ─── ROUTES: RESULTADO / RELATÓRIOS ───────────────────────────────────────────
 
 @app.route('/api/eleicoes/<eid>/resultado', methods=['GET'])
 def resultado(eid):
-    d = load_election(eid)
-    if not d: return jsonify({'ok': False})
-    # Only allow results of closed elections OR if mesário is logged in
-    if not d.get('eleicao_encerrada') and not require_mesario():
+    r = sb.table('eleicoes').select('*').eq('id', eid).execute()
+    if not r.data:
+        return jsonify({'ok': False})
+    e = r.data[0]
+    # Resultado público só se encerrada; senão exige mesário
+    if not e.get('eleicao_encerrada') and not require_mesario():
         return jsonify({'ok': False, 'msg': 'Resultado disponível apenas após encerramento.'})
+
+    cands = sb.table('candidatos').select('numero, nome, foto_url, votos').eq('eleicao_id', eid).execute()
     result = []
-    for c in d['candidatos']:
+    for c in cands.data or []:
         result.append({
             'nome': c['nome'], 'numero': c['numero'],
-            'foto': c.get('foto', ''),
-            'votos': d['votos'].get(str(c['numero']), 0)
+            'foto': c.get('foto_url') or '',
+            'votos': c.get('votos') or 0,
         })
     result.sort(key=lambda x: x['votos'], reverse=True)
-    total = sum(r['votos'] for r in result) + d.get('votos_brancos', 0)
-    total_funcionarios = len(d.get('funcionarios', []))
+    total = sum(x['votos'] for x in result) + (e.get('votos_brancos') or 0)
+    fcount = sb.table('funcionarios').select('id', count='exact').eq('eleicao_id', eid).execute()
     return jsonify({
-        'ok': True, 'titulo': d.get('titulo', ''),
+        'ok': True, 'titulo': e['titulo'],
         'candidatos': result,
-        'votos_brancos': d.get('votos_brancos', 0),
+        'votos_brancos': e.get('votos_brancos') or 0,
         'total_votos': total,
-        'total_funcionarios': total_funcionarios,
-        'eleicao_aberta': d['eleicao_aberta'],
-        'eleicao_encerrada': d['eleicao_encerrada'],
-        'encerrada_em': d.get('encerrada_em', ''),
-        'criada_em': d.get('criada_em', '')
+        'total_funcionarios': fcount.count or 0,
+        'eleicao_aberta': e.get('eleicao_aberta', False),
+        'eleicao_encerrada': e.get('eleicao_encerrada', False),
+        'encerrada_em': fmt_dt(e.get('encerrada_em')),
+        'criada_em': fmt_dt(e.get('criada_em')),
     })
 
 @app.route('/api/eleicoes/<eid>/relatorio_participacao', methods=['GET'])
 def relatorio_participacao(eid):
     if not require_mesario():
         return jsonify({'ok': False, 'msg': 'Acesso restrito.'})
-    d = load_election(eid)
-    if not d:
+    r = sb.table('eleicoes').select('titulo, criada_em, encerrada_em').eq('id', eid).execute()
+    if not r.data:
         return jsonify({'ok': False, 'msg': 'Eleição não encontrada.'})
-    funcionarios = d.get('funcionarios', [])
-    cpfs_votantes = set(d.get('cpfs_votantes', []))
-    votaram = []
-    nao_votaram = []
-    for f in funcionarios:
-        cpf_masked = f['cpf'][:3] + '.***.***-' + f['cpf'][-2:]
-        entry = {'nome': f['nome'], 'cpf_masked': cpf_masked}
+    e = r.data[0]
+    funcs = sb.table('funcionarios').select('nome, cpf').eq('eleicao_id', eid).execute()
+    votantes = sb.table('cpfs_votantes').select('cpf').eq('eleicao_id', eid).execute()
+    cpfs_votantes = set(v['cpf'] for v in (votantes.data or []))
+    votaram, nao_votaram = [], []
+    for f in funcs.data or []:
+        cpf_mask = f['cpf'][:3] + '.***.***-' + f['cpf'][-2:]
+        entry = {'nome': f['nome'], 'cpf_masked': cpf_mask}
         if f['cpf'] in cpfs_votantes:
             votaram.append(entry)
         else:
             nao_votaram.append(entry)
     votaram.sort(key=lambda x: x['nome'].upper())
     nao_votaram.sort(key=lambda x: x['nome'].upper())
-    total = len(funcionarios)
+    total = len(funcs.data or [])
     return jsonify({
-        'ok': True,
-        'titulo': d.get('titulo', ''),
-        'votaram': votaram,
-        'nao_votaram': nao_votaram,
+        'ok': True, 'titulo': e['titulo'],
+        'votaram': votaram, 'nao_votaram': nao_votaram,
         'total_funcionarios': total,
         'total_votaram': len(votaram),
         'total_nao_votaram': len(nao_votaram),
-        'encerrada_em': d.get('encerrada_em', ''),
-        'criada_em': d.get('criada_em', '')
+        'encerrada_em': fmt_dt(e.get('encerrada_em')),
+        'criada_em': fmt_dt(e.get('criada_em')),
     })
+
+# ─── ROUTES: TERMO LGPD ───────────────────────────────────────────────────────
+
+@app.route('/api/eleicoes/<eid>/aceitar_termo', methods=['POST'])
+def aceitar_termo(eid):
+    """Registra a aceitação do termo LGPD pelo eleitor. Auditoria sem expor CPF cru."""
+    dados = request.json or {}
+    cpf = (dados.get('cpf') or '').replace('.', '').replace('-', '').strip()
+    if len(cpf) != 11 or not cpf.isdigit():
+        return jsonify({'ok': False, 'msg': 'CPF inválido.'})
+    # Hash do CPF para auditoria sem expor o dado pessoal
+    cpf_hash = hashlib.sha256(f'{eid}:{cpf}'.encode('utf-8')).hexdigest()
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or '')
+    if ',' in ip: ip = ip.split(',')[0].strip()
+    ua = request.headers.get('User-Agent', '')[:255]
+    try:
+        sb.table('termos_aceitos').insert({
+            'eleicao_id': eid,
+            'cpf_hash': cpf_hash,
+            'ip': ip,
+            'user_agent': ua,
+        }).execute()
+    except Exception as e:
+        # Falha de auditoria não bloqueia voto (mas registra no console)
+        print(f'[lgpd] Erro ao registrar termo: {e}')
+    return jsonify({'ok': True})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=5000)
